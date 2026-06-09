@@ -141,6 +141,9 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 .data-btn { padding:6px 11px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.04em; border:1px solid var(--rule); border-radius:3px; background:white; color:var(--ink); cursor:pointer; transition:all .15s; }
 .data-btn:hover { border-color:var(--ink); }
 .data-btn:disabled { opacity:.5; cursor:not-allowed; }
+.auto-sync-toggle { display:flex; align-items:center; gap:5px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); cursor:pointer; padding:0 6px; }
+.auto-sync-toggle input { width:14px; height:14px; cursor:pointer; }
+.data-btn.syncing { opacity:.6; pointer-events:none; }
 .entry-synced { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--green); letter-spacing:.06em; }
 .entry-unsynced { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted); letter-spacing:.06em; cursor:pointer; text-decoration:underline; }
 
@@ -310,7 +313,15 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
     <h3>🛠️ แผงผู้ดูแล (Admin)</h3>
     <div class="ap-sub">จัดการข้อมูลทั้งในเครื่องและบน Google Sheet</div>
 
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">ดึงข้อมูล</div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">ข้อมูล & การตั้งค่า</div>
+    <div class="admin-grid">
+      <button class="data-btn" onclick="exportJSON()">⬇ สำรอง (JSON)</button>
+      <button class="data-btn" onclick="exportCSV()">⬇ ส่งออก CSV</button>
+      <button class="data-btn" onclick="document.getElementById('importFile').click()">⬆ นำเข้าไฟล์</button>
+      <button class="data-btn" onclick="openSheetSettings()">⚙ ตั้งค่า Sheet</button>
+    </div>
+
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px">ดึงข้อมูล</div>
     <div class="admin-grid">
       <button class="data-btn" onclick="pullData(false)">⬇ ดึงรายการจาก Sheet</button>
       <button class="data-btn" onclick="pullCats(false)">🧠 ดึงความจำหมวด</button>
@@ -340,13 +351,8 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
   </div>
 
   <div class="data-bar">
-    <button class="data-btn" id="btnSyncAll">☁ ซิงค์ทั้งหมด</button>
-    <button class="data-btn" onclick="pullData(false)">⬇ ดึงจาก Sheet</button>
-    <button class="data-btn" onclick="pullCats(false)">🧠 ดึงความจำหมวด</button>
-    <button class="data-btn" onclick="exportJSON()">⬇ สำรอง (JSON)</button>
-    <button class="data-btn" onclick="exportCSV()">⬇ CSV</button>
-    <button class="data-btn" onclick="document.getElementById('importFile').click()">⬆ นำเข้า</button>
-    <button class="data-btn" onclick="openSheetSettings()">⚙ ตั้งค่า Sheet</button>
+    <button class="data-btn" id="btnSync" onclick="syncNow()">🔄 ซิงค์</button>
+    <label class="auto-sync-toggle"><input type="checkbox" id="autoSyncChk" onchange="toggleAutoSync()"/> <span>ออโต้</span></label>
     <input type="file" id="importFile" accept="application/json" style="display:none"/>
   </div>
 
@@ -1039,16 +1045,52 @@ async function syncOne(id){
   if(ok){ e.synced=true; save(); render(); toast('ส่งไป Sheet แล้ว ✓','ok'); }
 }
 
-document.getElementById('btnSyncAll').onclick=async ()=>{
+// ── Combined sync: push pending rows up + pull rows & category memory down ──
+let _syncing=false;
+async function syncNow(silent){
   const url=getSheetUrl();
-  if(!url){ toast('ยังไม่ได้ตั้งค่า Sheet URL','err'); openSheetSettings(); return; }
-  const pending=entries.filter(e=>!e.synced);
-  if(!pending.length){ toast('ไม่มีรายการใหม่ที่ต้องส่ง','ok'); return; }
-  const btn=document.getElementById('btnSyncAll'); btn.disabled=true; btn.textContent='⏳ กำลังส่ง…';
-  const ok=await sendToSheet(pending.map(sheetRow));
-  if(ok){ pending.forEach(e=>e.synced=true); save(); render(); toast(`ส่ง ${pending.length} รายการแล้ว ✓`,'ok'); }
-  btn.disabled=false; btn.textContent='☁ ซิงค์ทั้งหมด';
-};
+  if(!url){ if(!silent){ toast('ยังไม่ได้ตั้งค่า Sheet URL','err'); openSheetSettings(); } return; }
+  if(_syncing) return;
+  _syncing=true;
+  const btn=document.getElementById('btnSync');
+  if(btn){ btn.classList.add('syncing'); btn.textContent='🔄 กำลังซิงค์…'; }
+  try{
+    // 1) push rows not yet sent
+    const pending=entries.filter(e=>!e.synced);
+    if(pending.length){
+      const ok=await sendToSheet(pending.map(sheetRow));
+      if(ok) pending.forEach(e=>e.synced=true);
+    }
+    // 2) push category memory
+    await pushCats();
+    // 3) pull rows + cats back down (merge)
+    await pullData(true);
+    await pullCats(true);
+    save();
+    if(!silent) toast('ซิงค์เรียบร้อย ✓','ok');
+  }catch(err){
+    if(!silent) toast('ซิงค์มีปัญหา: '+(err.message||err),'err');
+  }finally{
+    _syncing=false;
+    if(btn){ btn.classList.remove('syncing'); btn.textContent='🔄 ซิงค์'; }
+  }
+}
+
+// ── Auto-sync (periodic refresh) ──
+let _autoTimer=null;
+function autoSyncOnPref(){ return localStorage.getItem('fs9_autoSync2')==='1'; }
+function toggleAutoSync(){
+  const on=document.getElementById('autoSyncChk').checked;
+  localStorage.setItem('fs9_autoSync2', on?'1':'0');
+  startAutoSync();
+  toast(on?'เปิดออโต้ซิงค์ (ทุก 60 วิ) ✓':'ปิดออโต้ซิงค์','ok');
+}
+function startAutoSync(){
+  if(_autoTimer){ clearInterval(_autoTimer); _autoTimer=null; }
+  if(autoSyncOnPref() && getSheetUrl()){
+    _autoTimer=setInterval(()=>syncNow(true), 60000); // ทุก 60 วินาที
+  }
+}
 
 function sheetRow(e){
   return { id:e.id, date:e.date, type:e.type==='income'?'รายรับ':'รายจ่าย', desc:e.desc,
@@ -1220,6 +1262,8 @@ async function adminPullSheetInfo(){
 
 init();
 applyAdminUI();
+// restore auto-sync toggle state + start timer
+(function(){ const c=document.getElementById('autoSyncChk'); if(c){ c.checked=autoSyncOnPref(); } startAutoSync(); })();
 // sync from cloud on start (silent): category memory + transaction rows
 if(getSheetUrl()){ pullCats(true); pullData(true); }
 </script>
