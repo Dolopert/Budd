@@ -685,7 +685,13 @@ async function pullData(silent){
         added++;
       });
       entries.sort((a,b)=>b.id-a.id);
-      save(); render();
+      save();
+      // jump view to the most recent entry so pulled data is visible
+      if(entries.length){
+        const d=new Date(entries[0].date+'T00:00:00');
+        if(!isNaN(d)){ vDate=new Date(d.getFullYear(),d.getMonth(),1); updateMonth(); }
+      }
+      render();
       if(!silent) toast(added? `ดึงจาก Sheet +${added} รายการ ✓` : 'ข้อมูลตรงกันแล้ว ✓','ok');
       return true;
     }
