@@ -321,6 +321,15 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
       <button class="data-btn" onclick="openSheetSettings()">⚙ ตั้งค่า Sheet</button>
     </div>
 
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px">Dataset Keyword คัดแยกหมวด</div>
+    <div class="admin-grid">
+      <button class="data-btn" onclick="document.getElementById('kwFile').click()">⬆ นำเข้าจากไฟล์</button>
+      <button class="data-btn" onclick="exportKeywords()">⬇ ส่งออก keyword</button>
+      <button class="data-btn" onclick="resetKeywords()">↺ คืนค่าเริ่มต้น</button>
+      <button class="data-btn" onclick="showKwInfo()">📋 จำนวน keyword</button>
+    </div>
+    <input type="file" id="kwFile" accept="application/json" style="display:none"/>
+
     <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px">ดึงข้อมูล</div>
     <div class="admin-grid">
       <button class="data-btn" onclick="pullData(false)">⬇ ดึงรายการจาก Sheet</button>
@@ -620,21 +629,72 @@ function parseSlipText(raw){
 }
 
 // ════════ Category classifier (Level 1: keyword rules + Level 2: learned memory) ════════
-const CAT_RULES = [
-  { cat:'ของชำ / ซุปเปอร์มาร์เก็ต', kw:['7-ELEVEN','7 ELEVEN','SEVEN','CP ALL','เซเว่น','LOTUS','โลตัส','BIG C','บิ๊กซี','MAKRO','แม็คโคร','TOPS','VILLA MARKET','GOURMET','FAMILYMART','แฟมิลี่'] },
-  { cat:'การเดินทาง', kw:['GRAB','BOLT','LINE MAN','LINEMAN','TAXI','แท็กซี่','BTS','MRT','รถไฟฟ้า','PTT','บางจาก','SHELL','ESSO','CALTEX','เชลล์','น้ำมัน','ปตท','EXPRESSWAY','ทางด่วน'] },
-  { cat:'อาหาร & เครื่องดื่ม', kw:['STARBUCKS','สตาร์บัคส์','CAFE','คาเฟ่','COFFEE','กาแฟ','MCDONALD','KFC','BURGER','PIZZA','SHABU','BBQ','ร้านอาหาร','FOODPANDA','ROBINSON KITCHEN','AMAZON CAFE','AMAZON'] },
-  { cat:'ค่าสาธารณูปโภค', kw:['การไฟฟ้า','MEA','PEA','ไฟฟ้า','การประปา','ประปา','TRUE','AIS','DTAC','3BB','NT','อินเทอร์เน็ต','ค่าน้ำ','ค่าไฟ','ELECTRIC','WATER BILL'] },
-  { cat:'สุขภาพ / ยา', kw:['โรงพยาบาล','HOSPITAL','คลินิก','CLINIC','PHARMACY','ร้านยา','WATSONS','วัตสัน','BOOTS','เภสัช','ทันตกรรม','DENTAL'] },
-  { cat:'ช้อปปิ้ง', kw:['SHOPEE','ช้อปปี้','LAZADA','ลาซาด้า','UNIQLO','H&M','ZARA','CENTRAL','เซ็นทรัล','ROBINSON','โรบินสัน','POWER BUY','IKEA','HOMEPRO','โฮมโปร'] },
-  { cat:'บันเทิง', kw:['NETFLIX','SPOTIFY','YOUTUBE','DISNEY','HBO','MAJOR','เมเจอร์','SF CINEMA','โรงหนัง','GAME','STEAM','VIU','WETV'] },
-  { cat:'เติมเงิน / E-Wallet', kw:['TRUEMONEY','TRUE MONEY','ทรูมันนี่','WALLET','RABBIT','พร้อมเพย์','TOPUP','เติมเงิน','SHOPEEPAY'] },
-  { cat:'ค่าเช่า / ที่พัก', kw:['ค่าเช่า','RENT','คอนโด','CONDO','APARTMENT','หอพัก','DORMITORY','AGODA','BOOKING','HOTEL','โรงแรม','AIRBNB'] },
-  { cat:'การศึกษา', kw:['มหาวิทยาลัย','UNIVERSITY','โรงเรียน','SCHOOL','คอร์ส','COURSE','ติว','UDEMY','COURSERA','ค่าเทอม','TUITION'] },
+// Built-in keyword dataset (Thai merchants). Custom dataset (imported) is merged on top.
+const CAT_RULES_DEFAULT = [
+  { cat:'อาหาร & เครื่องดื่ม', kw:['STARBUCKS','สตาร์บัคส์','CAFE AMAZON','คาเฟ่ อเมซอน','AMAZON','COFFEE','กาแฟ','CAFE','คาเฟ่','MCDONALD','แมคโดนัล','KFC','เคเอฟซี','BURGER KING','เบอร์เกอร์','PIZZA','พิซซ่า','PIZZA HUT','DOMINO','SUBWAY','SUKISHI','สุกี้','MK','เอ็มเค','SHABU','ชาบู','HOTPOT','YAYOI','ยาโยอิ','FUJI','ฟูจิ','OISHI','โออิชิ','ZEN','BONCHON','บอนชอน','TEXAS','CHESTER','เชสเตอร์','SWENSEN','DAIRY QUEEN','AFTER YOU','อาฟเตอร์ยู','BAKERY','เบเกอรี่','S&P','เอสแอนด์พี','AU BON PAIN','ร้านอาหาร','ภัตตาคาร','อาหาร','BBQ','BUFFET','บุฟเฟ่ต์','ก๋วยเตี๋ยว','ข้าวมันไก่','FOODPANDA','ฟู้ดแพนด้า','TRUE COFFEE','INTHANIN','อินทนิล','PUNTHAI','พันธุ์ไทย','CHATIME','ชาตรามือ'] },
+  { cat:'ของชำ / ซุปเปอร์มาร์เก็ต', kw:['7-ELEVEN','7 ELEVEN','SEVEN','เซเว่น','CP ALL','LOTUS','โลตัส','TESCO','เทสโก้','BIG C','บิ๊กซี','BIGC','MAKRO','แม็คโคร','แมคโคร','TOPS','ท็อปส์','VILLA MARKET','วิลล่า','GOURMET','กูร์เมต์','FOODLAND','ฟู้ดแลนด์','FAMILYMART','แฟมิลี่มาร์ท','FAMILY MART','LAWSON','ลอว์สัน','CJ EXPRESS','ซีเจ','MAX VALU','แม็กซ์แวลู','มินิมาร์ท','ร้านสะดวกซื้อ','ตลาด','SUPERMARKET','ซุปเปอร์มาร์เก็ต'] },
+  { cat:'การเดินทาง', kw:['GRAB','แกร็บ','GRABTAXI','BOLT','โบลท์','LINE MAN','LINEMAN','ไลน์แมน','ROBINHOOD','โรบินฮู้ด','TAXI','แท็กซี่','TUKTUK','ตุ๊กตุ๊ก','BTS','รถไฟฟ้า','MRT','เอ็มอาร์ที','ARL','แอร์พอร์ตลิงก์','PTT','ปตท','BANGCHAK','บางจาก','SHELL','เชลล์','ESSO','เอสโซ่','CALTEX','คาลเท็กซ์','SUSCO','ซัสโก้','น้ำมัน','FUEL','เติมน้ำมัน','EXPRESSWAY','ทางด่วน','EASY PASS','M-FLOW','MFLOW','ที่จอดรถ','PARKING','AIRASIA','แอร์เอเชีย','NOK AIR','นกแอร์','การบินไทย','BANGKOK AIRWAYS','รถทัวร์','BUS','รถเมล์'] },
+  { cat:'ค่าสาธารณูปโภค', kw:['การไฟฟ้า','MEA','การไฟฟ้านครหลวง','PEA','การไฟฟ้าส่วนภูมิภาค','ไฟฟ้า','ELECTRIC','ค่าไฟ','การประปา','ประปา','WATER','ค่าน้ำ','MWA','PWA','TRUE','ทรู','TRUEMOVE','AIS','เอไอเอส','DTAC','ดีแทค','NT','TOT','CAT','3BB','ทรีบีบี','อินเทอร์เน็ต','INTERNET','WIFI','มือถือ','ค่าโทร','ชำระบิล','HOSTING','DOMAIN','ICLOUD','DROPBOX','ADOBE','CANVA','NOTION','SUBSCRIPTION','ค่าสมาชิก'] },
+  { cat:'สุขภาพ / ยา', kw:['โรงพยาบาล','HOSPITAL','รพ.','คลินิก','CLINIC','PHARMACY','ร้านยา','เภสัช','WATSONS','วัตสัน','BOOTS','บู๊ทส์','FASCINO','ฟาสซิโน','PURE','EVE AND BOY','MATSUMOTO','BANGKOK HOSPITAL','BUMRUNGRAD','บำรุงราษฎร์','SAMITIVEJ','สมิติเวช','BNH','PHYATHAI','พญาไท','ทันตกรรม','DENTAL','หมอฟัน','ตรวจสุขภาพ','วัคซีน','VACCINE','ยา','MEDICINE','แว่นตา','หอแว่น'] },
+  { cat:'ช้อปปิ้ง', kw:['SHOPEE','ช้อปปี้','ช็อปปี้','LAZADA','ลาซาด้า','TIKTOK SHOP','ติ๊กต็อก','UNIQLO','ยูนิโคล่','H&M','ZARA','MUJI','มูจิ','SUPERSPORTS','ADIDAS','NIKE','CHARLES & KEITH','CENTRAL','เซ็นทรัล','ROBINSON','โรบินสัน','THE MALL','เดอะมอลล์','SIAM PARAGON','EMPORIUM','ICONSIAM','ไอคอนสยาม','POWER BUY','เพาเวอร์บาย','BANANA IT','JIB','ADVICE','COM7','IT CITY','STUDIO 7','IKEA','อิเกีย','HOMEPRO','โฮมโปร','DOHOME','ดูโฮม','THAIWATSADU','ไทวัสดุ','GLOBAL HOUSE','INDEX LIVING','DAISO','ไดโซะ','MINISO'] },
+  { cat:'บันเทิง', kw:['NETFLIX','เน็ตฟลิกซ์','SPOTIFY','สปอติฟาย','YOUTUBE','DISNEY','ดิสนีย์','HBO','VIU','วิว','WETV','IQIYI','PRIME VIDEO','APPLE MUSIC','APPLE TV','JOOX','MAJOR','เมเจอร์','SF CINEMA','เอสเอฟ','โรงหนัง','CINEMA','หนัง','STEAM','สตีม','GARENA','การีน่า','PLAYSTATION','XBOX','NINTENDO','GAME','เกม','คอนเสิร์ต','CONCERT','TICKET'] },
+  { cat:'เติมเงิน / E-Wallet', kw:['TRUEMONEY','TRUE MONEY','ทรูมันนี่','TRUE WALLET','WALLET','วอลเล็ท','RABBIT','แรบบิท','LINE PAY','ไลน์เพย์','SHOPEEPAY','ช้อปปี้เพย์','DOLFIN','ดอลฟิน','AIRPAY','พร้อมเพย์','PROMPTPAY','TOPUP','เติมเงิน','เติมเกม','GIFT CARD','บัตรเงินสด'] },
+  { cat:'ค่าเช่า / ที่พัก', kw:['ค่าเช่า','RENT','RENTAL','คอนโด','CONDO','APARTMENT','อพาร์ทเมนท์','หอพัก','DORMITORY','DORM','บ้านเช่า','AGODA','อโกด้า','BOOKING','HOTEL','โรงแรม','AIRBNB','RESORT','รีสอร์ท','HOSTEL','ค่าส่วนกลาง','นิติบุคคล'] },
+  { cat:'การศึกษา', kw:['มหาวิทยาลัย','UNIVERSITY','โรงเรียน','SCHOOL','วิทยาลัย','COLLEGE','สถาบัน','INSTITUTE','ค่าเทอม','TUITION','คอร์ส','COURSE','ติว','เรียนพิเศษ','UDEMY','COURSERA','SKILLLANE','SKOOLDIO','หนังสือ','BOOK','SE-ED','ซีเอ็ด','NAIIN','นายอินทร์','B2S','KINOKUNIYA','เครื่องเขียน','STATIONERY'] },
 ];
+
+// custom dataset imported by user (stored), merged with default
+function customRules(){ try{ return JSON.parse(localStorage.getItem('fs9_customKw')||'[]'); }catch{ return []; } }
+function getCatRules(){
+  const custom=customRules();
+  if(!custom.length) return CAT_RULES_DEFAULT;
+  const map={};
+  CAT_RULES_DEFAULT.forEach(r=>{ map[r.cat]=[...r.kw]; });
+  custom.forEach(r=>{ if(!map[r.cat]) map[r.cat]=[]; map[r.cat]=map[r.cat].concat(r.kw||r.keywords||[]); });
+  return Object.keys(map).map(cat=>({cat, kw:map[cat]}));
+}
 
 function learnedMap(){ try{ return JSON.parse(localStorage.getItem('fs9_catMemory')||'{}'); }catch{ return {}; } }
 function saveLearned(m){ try{ localStorage.setItem('fs9_catMemory',JSON.stringify(m)); }catch{} }
+
+// ── Keyword dataset management ──
+function kwCount(){ return getCatRules().reduce((s,r)=>s+r.kw.length,0); }
+function showKwInfo(){
+  const rules=getCatRules();
+  const total=kwCount();
+  const custom=customRules().length;
+  toast(`${rules.length} หมวด, ${total} keyword${custom?` (custom ${custom})`:''}`,'ok');
+}
+function exportKeywords(){
+  // export current effective dataset in the dataset file format
+  const out={ _meta:{name:'Finance Slip keyword dataset (exported)', exported:new Date().toISOString()},
+    categories: getCatRules().map(r=>({cat:r.cat, keywords:r.kw})) };
+  downloadBlob(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}), `keyword-dataset-${dateStamp()}.json`);
+  toast('ส่งออก keyword แล้ว ✓','ok');
+}
+function resetKeywords(){
+  if(!confirm('คืนค่า keyword เป็นชุดเริ่มต้น? (ลบ keyword ที่นำเข้าเอง)')) return;
+  localStorage.removeItem('fs9_customKw');
+  toast('คืนค่า keyword เริ่มต้นแล้ว ✓','ok');
+}
+document.getElementById('kwFile').onchange=e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      // accept either {categories:[{cat,keywords}]} or [{cat,kw}]
+      let cats = Array.isArray(data) ? data : data.categories;
+      if(!Array.isArray(cats)) throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
+      const norm = cats.map(c=>({ cat:c.cat, kw:(c.kw||c.keywords||[]).filter(Boolean) })).filter(c=>c.cat && c.kw.length);
+      if(!norm.length) throw new Error('ไม่พบ keyword ในไฟล์');
+      localStorage.setItem('fs9_customKw', JSON.stringify(norm));
+      toast(`นำเข้า keyword: ${norm.length} หมวด, ${norm.reduce((s,c)=>s+c.kw.length,0)} คำ ✓`,'ok');
+    }catch(err){ toast('นำเข้าไม่สำเร็จ: '+(err.message||err),'err'); }
+    e.target.value='';
+  };
+  r.readAsText(file);
+};
 
 // push local category memory to the Sheet (Categories tab)
 async function pushCats(){
@@ -729,7 +789,7 @@ function classifyCategory(found){
   }
 
   // Level 1: keyword rules
-  for(const rule of CAT_RULES){
+  for(const rule of getCatRules()){
     for(const k of rule.kw){
       if(hay.includes(k.toUpperCase())) return { cat:rule.cat, source:'rule' };
     }
