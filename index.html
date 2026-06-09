@@ -543,7 +543,7 @@ btnScan.onclick=async e=>{
 
 // ── Parse OCR text (note is NOT auto-filled) ──
 function parseSlipText(raw){
-  const out={ amount:null, date:null, ref:null, type:null, desc:null };
+  const out={ amount:null, date:null, ref:null, type:null, desc:null, note:null, sender:null, receiver:null, payee:null };
   if(!raw) return out;
   const text=raw.replace(/\u00A0/g,' ');
   const lines=text.split(/\n+/).map(l=>l.trim()).filter(Boolean);
@@ -580,9 +580,32 @@ function parseSlipText(raw){
   if(/รับเงิน|เงินเข้า|received|โอนเงินรับ/i.test(text)) out.type='income';
   else if(/โอนเงิน|เติมเงิน|จ่าย|ชำระ|payment|transfer/i.test(text)) out.type='expense';
 
-  if(/เติมเงิน/.test(text)) out.desc='เติมเงิน';
+  // ── extract names (sender / receiver) ──
+  // Thai slips list names with prefixes นาย/นาง/น.ส./บจก./บริษัท, or service names like "TrueMoney Wallet"
+  const nameRe=/(นาย|นางสาว|น\.ส\.|นาง|ด\.ช\.|ด\.ญ\.|บจก\.|บมจ\.|บริษัท)\s*[^\n]{1,40}/g;
+  const names=[];
+  let nm; while((nm=nameRe.exec(text))!==null){ names.push(nm[0].trim()); }
+  // service/merchant names (English-ish wallet/shop)
+  const svc=lines.find(l=>/Wallet|TrueMoney|ShopeePay|Rabbit|PromptPay/i.test(l));
+
+  // first name = sender (ผู้โอน), second = receiver (ผู้รับ)
+  out.sender = names[0] || null;
+  out.receiver = names[1] || svc || null;
+
+  // For expense, the payee that matters = receiver. For income, the payer = sender.
+  out.payee = (out.type==='income') ? (out.sender||out.receiver) : (out.receiver||out.sender);
+
+  // description: prefer a meaningful payee; fall back to slip header
+  if(out.payee){
+    out.desc = out.payee.replace(/^(นาย|นางสาว|น\.ส\.|นาง|ด\.ช\.|ด\.ญ\.|บจก\.|บมจ\.|บริษัท)\s*/,'').slice(0,40) || out.payee;
+  } else if(/เติมเงิน/.test(text)) out.desc='เติมเงิน';
   else if(/โอนเงิน/.test(text)) out.desc='โอนเงิน';
   else { const head=lines[0]||''; if(head && head.length<=30) out.desc=head; }
+
+  // note: record direction + both names so the key is traceable
+  if(out.sender || out.receiver){
+    out.note = `${out.type==='income'?'รับจาก':'โอนให้'}: ${out.payee||''}`.trim();
+  }
 
   out.fullText = text;  // for category classification
   return out;
@@ -640,11 +663,15 @@ function payeeKey(s){ return (s||'').toUpperCase().replace(/[^A-Z0-9ก-๙]/g,'
 
 // returns {cat, source} or null
 function classifyCategory(found){
-  const hay = ((found.fullText||'')+' '+(found.desc||'')+' '+(found.note||'')).toUpperCase();
+  const mem = learnedMap();
+  // Level 2a: exact payee key match (strongest signal)
+  const pk = payeeKey(found.payee) || payeeKey(found.receiver) || payeeKey(found.sender);
+  if(pk && mem[pk]) return { cat:mem[pk], source:'learned-payee' };
+
+  const hay = ((found.fullText||'')+' '+(found.desc||'')+' '+(found.note||'')+' '+(found.payee||'')).toUpperCase();
   if(!hay.trim()) return null;
 
-  // Level 2: learned from your past corrections (by payee/keyword)
-  const mem = learnedMap();
+  // Level 2b: any learned key contained in text
   for(const key in mem){
     if(key && hay.includes(key)) return { cat:mem[key], source:'learned' };
   }
@@ -673,14 +700,14 @@ function applyParsed(d){
   if(d.date) setField('fDate', d.date);
   if(d.desc) setField('fDesc', d.desc);
   if(d.ref && !document.getElementById('fRef').value) setField('fRef', d.ref);
-  // auto-categorize
+  if(d.note) setField('fNote', d.note);   // now meaningful: "โอนให้: ..." / "รับจาก: ..."
+  // auto-categorize (prefer payee key learned memory, then keyword)
   const c=classifyCategory(d);
   if(c){
     const sel=document.getElementById('fCat');
     const opt=Array.from(sel.options).find(o=>o.value===c.cat);
     if(opt){ sel.value=c.cat; sel.classList.add('ocr-f'); sel.addEventListener('change',()=>sel.classList.remove('ocr-f'),{once:true}); }
   }
-  // note is intentionally NOT auto-filled
 }
 
 function setField(id,val){ const el=document.getElementById(id); el.value=val; el.classList.add('ocr-f'); el.addEventListener('input',()=>el.classList.remove('ocr-f'),{once:true}); }
@@ -744,7 +771,25 @@ function clearForm(){
   document.getElementById('amtSym').textContent='฿';
   resetImage(); setType('expense');
 }
-function deleteEntry(id){ entries=entries.filter(e=>e.id!==id); save(); render(); }
+function deleteEntry(id){
+  const e=entries.find(x=>x.id===id);
+  if(!e) return;
+  if(!confirm('ลบรายการนี้?\n'+(e.desc||'')+' '+(e.currency||'฿')+e.amount)) return;
+  // remove locally
+  entries=entries.filter(x=>x.id!==id); save(); render();
+  // remove from Sheet too (if it was synced and sheet configured)
+  if(getSheetUrl() && e.synced){
+    fetch(getSheetUrl(),{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'deleteRow', id }) })
+      .then(r=>r.text()).then(()=>toast('ลบทั้งในเครื่องและ Sheet ✓','ok'))
+      .catch(()=>{ // fallback no-cors
+        fetch(getSheetUrl(),{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteRow',id})});
+        toast('ลบแล้ว (Sheet: ส่งคำสั่งลบ)','ok');
+      });
+  } else {
+    toast('ลบรายการแล้ว ✓','ok');
+  }
+}
 function openLightbox(src){ document.getElementById('lbImg').src=src; document.getElementById('lightbox').classList.add('show'); }
 function closeLightbox(){ document.getElementById('lightbox').classList.remove('show'); }
 
