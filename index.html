@@ -312,6 +312,7 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 
     <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">ดึงข้อมูล</div>
     <div class="admin-grid">
+      <button class="data-btn" onclick="pullData(false)">⬇ ดึงรายการจาก Sheet</button>
       <button class="data-btn" onclick="pullCats(false)">🧠 ดึงความจำหมวด</button>
       <button class="data-btn" onclick="adminPullSheetInfo()">📊 ดูสถานะ Sheet</button>
     </div>
@@ -340,6 +341,7 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 
   <div class="data-bar">
     <button class="data-btn" id="btnSyncAll">☁ ซิงค์ทั้งหมด</button>
+    <button class="data-btn" onclick="pullData(false)">⬇ ดึงจาก Sheet</button>
     <button class="data-btn" onclick="pullCats(false)">🧠 ดึงความจำหมวด</button>
     <button class="data-btn" onclick="exportJSON()">⬇ สำรอง (JSON)</button>
     <button class="data-btn" onclick="exportCSV()">⬇ CSV</button>
@@ -661,6 +663,44 @@ async function pullCats(silent){
 }
 function payeeKey(s){ return (s||'').toUpperCase().replace(/[^A-Z0-9ก-๙]/g,'').slice(0,40); }
 
+// pull transaction rows from the Sheet and merge into local (by id, no duplicates)
+async function pullData(silent){
+  const url=getSheetUrl(); if(!url){ if(!silent) toast('ยังไม่ได้ตั้งค่า Sheet URL','err'); return false; }
+  try{
+    const res=await fetch(url,{method:'GET'});
+    const info=JSON.parse(await res.text());
+    if(info && info.ok && Array.isArray(info.data)){
+      const existing=new Set(entries.map(e=>String(e.id)));
+      let added=0;
+      info.data.forEach(r=>{
+        if(!r.id || existing.has(String(r.id))) return;
+        entries.push({
+          id: Number(r.id)||Date.now()+Math.random(),
+          type: (r.type==='รายรับ'||r.type==='income') ? 'income' : 'expense',
+          desc: r.desc||'', amount: parseFloat(r.amount)||0,
+          date: normDate(r.date), currency: r.currency||'฿',
+          category: r.category||'', method: r.method||'', ref: r.ref!=null?String(r.ref):'',
+          note: r.note||'', img:null, synced:true
+        });
+        added++;
+      });
+      entries.sort((a,b)=>b.id-a.id);
+      save(); render();
+      if(!silent) toast(added? `ดึงจาก Sheet +${added} รายการ ✓` : 'ข้อมูลตรงกันแล้ว ✓','ok');
+      return true;
+    }
+  }catch(err){ if(!silent) toast('ดึงข้อมูลไม่สำเร็จ: '+(err.message||err),'err'); }
+  return false;
+}
+// normalize date from Sheet (may come as ISO string or Date) to YYYY-MM-DD
+function normDate(v){
+  if(!v) return new Date().toISOString().split('T')[0];
+  const s=String(v);
+  let m=s.match(/(\d{4})-(\d{2})-(\d{2})/); if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  const d=new Date(s); if(!isNaN(d)) return d.toISOString().split('T')[0];
+  return new Date().toISOString().split('T')[0];
+}
+
 // returns {cat, source} or null
 function classifyCategory(found){
   const mem = learnedMap();
@@ -777,14 +817,18 @@ function deleteEntry(id){
   if(!confirm('ลบรายการนี้?\n'+(e.desc||'')+' '+(e.currency||'฿')+e.amount)) return;
   // remove locally
   entries=entries.filter(x=>x.id!==id); save(); render();
-  // remove from Sheet too (if it was synced and sheet configured)
-  if(getSheetUrl() && e.synced){
+  // always tell the Sheet to delete this id (it deletes if found, ignores if not)
+  if(getSheetUrl()){
     fetch(getSheetUrl(),{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ action:'deleteRow', id }) })
-      .then(r=>r.text()).then(()=>toast('ลบทั้งในเครื่องและ Sheet ✓','ok'))
-      .catch(()=>{ // fallback no-cors
+      .then(r=>r.text()).then(txt=>{
+        let d; try{ d=JSON.parse(txt); }catch{ d=null; }
+        if(d && d.ok) toast(d.removed>0?'ลบทั้งในเครื่องและ Sheet ✓':'ลบในเครื่องแล้ว (ไม่พบใน Sheet)','ok');
+        else toast('ลบในเครื่องแล้ว','ok');
+      })
+      .catch(()=>{
         fetch(getSheetUrl(),{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteRow',id})});
-        toast('ลบแล้ว (Sheet: ส่งคำสั่งลบ)','ok');
+        toast('ลบแล้ว (ส่งคำสั่งลบไป Sheet)','ok');
       });
   } else {
     toast('ลบรายการแล้ว ✓','ok');
@@ -904,7 +948,7 @@ const GS_CODE = `function doPost(e) {
   }
 }
 
-// GET = ทดสอบ deploy + ดึงความจำหมวด (?cats=1 เพื่อขอเฉพาะ cats)
+// GET = ทดสอบ deploy + ดึงความจำหมวด + ดึงรายการทั้งหมด (?data=1)
 function doGet(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheets()[0];
@@ -916,6 +960,20 @@ function doGet(e) {
     for (var i = 1; i < vals.length; i++) if (vals[i][0]) cats[vals[i][0]] = vals[i][1];
   }
   out.cats = cats;
+  // include all transaction rows so the app can pull them back
+  var data = [];
+  if (sheet.getLastRow() > 1) {
+    var dv = sheet.getDataRange().getValues();
+    for (var r = 1; r < dv.length; r++) {
+      var row = dv[r];
+      if (!row[0]) continue;
+      data.push({
+        id: row[0], date: row[1], type: row[2], desc: row[3], amount: row[4],
+        currency: row[5], category: row[6], method: row[7], ref: row[8], note: row[9]
+      });
+    }
+  }
+  out.data = data;
   return ContentService.createTextOutput(JSON.stringify(out))
     .setMimeType(ContentService.MimeType.JSON);
 }`;
@@ -1156,8 +1214,8 @@ async function adminPullSheetInfo(){
 
 init();
 applyAdminUI();
-// sync category memory from cloud on start (silent)
-if(getSheetUrl()) pullCats(true);
+// sync from cloud on start (silent): category memory + transaction rows
+if(getSheetUrl()){ pullCats(true); pullData(true); }
 </script>
 </body>
 </html>
