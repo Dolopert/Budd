@@ -39,9 +39,11 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 .sum-val { font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; line-height:1; }
 .sum-val.inc { color:var(--green); } .sum-val.exp { color:var(--red); }
 
-.month-nav { display:flex; align-items:center; background:var(--faint); border-bottom:1px solid var(--rule); padding:8px 16px; }
-.mnav-btn { background:none; border:1px solid var(--rule); border-radius:2px; width:26px; height:26px; font-size:15px; cursor:pointer; color:var(--muted); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.mnav-label { flex:1; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; }
+.month-sticky { position:sticky; top:0; z-index:20; background:var(--faint); border-bottom:1px solid var(--rule); padding:7px 16px; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--ink); }
+.month-head { display:flex; align-items:baseline; gap:8px; padding:14px 2px 6px; margin-top:6px; border-top:1px dashed var(--rule); }
+.month-head:first-child { border-top:none; margin-top:0; }
+.month-head .mh-title { font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:var(--ink); }
+.month-head .mh-bal { margin-left:auto; font-family:'IBM Plex Mono',monospace; font-size:11px; }
 
 .wrap { max-width:680px; margin:0 auto; padding:20px 14px; }
 
@@ -220,11 +222,7 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
   <div class="sum-cell"><div class="sum-lbl">คงเหลือ</div><div class="sum-val" id="sBal">฿0</div></div>
 </div>
 
-<div class="month-nav">
-  <button class="mnav-btn" id="prevM">‹</button>
-  <span class="mnav-label" id="mLabel"></span>
-  <button class="mnav-btn" id="nextM">›</button>
-</div>
+<div class="month-sticky" id="monthSticky"></div>
 
 <div class="wrap">
   <div class="slip-card">
@@ -414,7 +412,6 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 let entries = JSON.parse(localStorage.getItem('fs9') || '[]');
 let curType = 'expense';
 let curFilter = 'all';
-let vDate = new Date();
 let slipImgEl = null;     // full-res image for OCR/QR
 let slipThumb = null;     // compressed thumbnail, ready to save immediately
 
@@ -422,11 +419,8 @@ function init(){
   const now=new Date();
   document.getElementById('fDate').value=now.toISOString().split('T')[0];
   document.getElementById('hdrDate').textContent=now.toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  updateMonth(); render(); setType('expense');
+  render(); setType('expense');
 }
-function updateMonth(){ document.getElementById('mLabel').textContent=vDate.toLocaleDateString('th-TH',{month:'long',year:'numeric'}); }
-document.getElementById('prevM').onclick=()=>{vDate.setMonth(vDate.getMonth()-1);updateMonth();render();};
-document.getElementById('nextM').onclick=()=>{vDate.setMonth(vDate.getMonth()+1);updateMonth();render();};
 
 const imgZone=document.getElementById('imgZone'), fileInput=document.getElementById('fileInput'),
       slipPrev=document.getElementById('slipPreview'), imgHolder=document.getElementById('imgPlaceholder'),
@@ -792,11 +786,6 @@ async function pullData(silent){
       });
       entries.sort((a,b)=>b.id-a.id);
       save();
-      // jump view to the most recent entry so pulled data is visible
-      if(entries.length){
-        const d=new Date(entries[0].date+'T00:00:00');
-        if(!isNaN(d)){ vDate=new Date(d.getFullYear(),d.getMonth(),1); updateMonth(); }
-      }
       render();
       if(!silent) toast(added? `ดึงจาก Sheet +${added} รายการ ✓` : 'ข้อมูลตรงกันแล้ว ✓','ok');
       return true;
@@ -911,9 +900,9 @@ function postEntry(){
 function autoSendOn(){ return localStorage.getItem('fs9_autoSend')==='1'; }
 function save(){ try{ localStorage.setItem('fs9',JSON.stringify(entries)); return true; }catch{ return false; } }
 function afterSave(){
-  const last=entries[0];
-  if(last){ const d=new Date(last.date+'T00:00:00'); vDate=new Date(d.getFullYear(),d.getMonth(),1); updateMonth(); }
   render(); clearForm();
+  // scroll to top so the just-added entry (newest) is visible
+  window.scrollTo({top:0, behavior:'smooth'});
 }
 
 function clearForm(){
@@ -949,43 +938,87 @@ function deleteEntry(id){
 function openLightbox(src){ document.getElementById('lbImg').src=src; document.getElementById('lightbox').classList.add('show'); }
 function closeLightbox(){ document.getElementById('lightbox').classList.remove('show'); }
 
-function render(){
-  const yr=vDate.getFullYear(), mo=vDate.getMonth();
-  const mE=entries.filter(e=>{const d=new Date(e.date+'T00:00:00');return d.getFullYear()===yr&&d.getMonth()===mo;});
-  const inc=mE.filter(e=>e.type==='income').reduce((s,e)=>s+e.amount,0);
-  const exp=mE.filter(e=>e.type==='expense').reduce((s,e)=>s+e.amount,0);
-  const bal=inc-exp; const sym=mE[0]?.currency||'฿';
-  const fmt=n=>sym+n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
-  document.getElementById('sInc').textContent=fmt(inc);
-  document.getElementById('sExp').textContent=fmt(exp);
-  const bel=document.getElementById('sBal'); bel.textContent=(bal<0?'-':'')+fmt(Math.abs(bal));
-  bel.style.color=bal<0?'var(--red)':bal>0?'var(--green)':'var(--ink)';
+function monthKey(dateStr){ const d=new Date(dateStr+'T00:00:00'); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function monthLabel(key){ const [y,m]=key.split('-').map(Number); return new Date(y,m-1,1).toLocaleDateString('th-TH',{month:'long',year:'numeric'}); }
 
-  const filt=curFilter==='all'?mE:mE.filter(e=>e.type===curFilter);
+function render(){
+  const fmtCur=(n,sym)=> (sym||'฿')+n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // filter by type
+  const all = curFilter==='all' ? entries : entries.filter(e=>e.type===curFilter);
+
+  // grand totals (all entries shown)
+  const gInc=all.filter(e=>e.type==='income').reduce((s,e)=>s+e.amount,0);
+  const gExp=all.filter(e=>e.type==='expense').reduce((s,e)=>s+e.amount,0);
+  const gBal=gInc-gExp; const gsym=entries[0]?.currency||'฿';
+  document.getElementById('sInc').textContent=fmtCur(gInc,gsym);
+  document.getElementById('sExp').textContent=fmtCur(gExp,gsym);
+  const bel=document.getElementById('sBal'); bel.textContent=(gBal<0?'-':'')+fmtCur(Math.abs(gBal),gsym);
+  bel.style.color=gBal<0?'var(--red)':gBal>0?'var(--green)':'var(--ink)';
+
   const list=document.getElementById('eList');
-  if(!filt.length){ list.innerHTML='<div class="empty">ยังไม่มีรายการในเดือนนี้</div>'; return; }
-  const byD={}; filt.forEach(e=>{if(!byD[e.date])byD[e.date]=[];byD[e.date].push(e);});
+  if(!all.length){ list.innerHTML='<div class="empty">ยังไม่มีรายการ</div>'; document.getElementById('monthSticky').textContent=''; return; }
+
+  // group by month, then by date — newest first
+  const byMonth={};
+  all.forEach(e=>{ const k=monthKey(e.date); (byMonth[k]=byMonth[k]||[]).push(e); });
+  const months=Object.keys(byMonth).sort((a,b)=>b.localeCompare(a));
+
   let html='';
-  Object.keys(byD).sort((a,b)=>b.localeCompare(a)).forEach(date=>{
-    const d=new Date(date+'T00:00:00');
-    html+=`<div class="dg-label">${d.toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'})}</div>`;
-    byD[date].forEach(e=>{
-      const sign=e.type==='income'?'+':'−'; const s=e.currency||'฿';
-      const thumb=e.img?`<img class="entry-thumb" src="${e.img}" onclick="openLightbox('${e.img.replace(/'/g,"\\'")}')"/>`:'';
-      html+=`<div class="entry ${e.type}">${thumb}
-        <div class="entry-info">
-          <div class="entry-desc">${esc(e.desc)}</div>
-          <div class="entry-tags">${e.category?`<span class="etag">${esc(e.category)}</span>`:''}<span class="etag">${esc(e.method||'')}</span>${e.ref?`<span class="etag">#${esc(e.ref)}</span>`:''}</div>
-          ${e.note?`<div class="entry-note">${esc(e.note)}</div>`:''}
-        </div>
-        <div class="entry-right"><div class="eamount">${sign}${s}${e.amount.toLocaleString('th-TH',{minimumFractionDigits:2})}</div>
-        ${ getSheetUrl() ? (e.synced?'<span class="entry-synced">☁ ส่งแล้ว</span>':`<span class="entry-unsynced" onclick="syncOne(${e.id})">↑ ส่งไป Sheet</span>`) : '' }
-        <button class="edel" onclick="deleteEntry(${e.id})">✕</button></div>
-      </div>`;
+  months.forEach(mk=>{
+    const items=byMonth[mk];
+    const inc=items.filter(e=>e.type==='income').reduce((s,e)=>s+e.amount,0);
+    const exp=items.filter(e=>e.type==='expense').reduce((s,e)=>s+e.amount,0);
+    const bal=inc-exp; const sym=items[0]?.currency||'฿';
+    const balCol=bal<0?'var(--red)':'var(--green)';
+    // month header
+    html+=`<div class="month-head" data-month="${mk}" data-label="${esc(monthLabel(mk))}">
+      <span class="mh-title">${esc(monthLabel(mk))}</span>
+      <span class="mh-bal" style="color:${balCol}">${bal<0?'-':''}${sym}${Math.abs(bal).toLocaleString('th-TH',{minimumFractionDigits:2})}</span>
+    </div>`;
+    // by date within month
+    const byD={}; items.forEach(e=>{(byD[e.date]=byD[e.date]||[]).push(e);});
+    Object.keys(byD).sort((a,b)=>b.localeCompare(a)).forEach(date=>{
+      const d=new Date(date+'T00:00:00');
+      html+=`<div class="dg-label">${d.toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'})}</div>`;
+      byD[date].forEach(e=>{
+        const sign=e.type==='income'?'+':'−'; const s=e.currency||'฿';
+        const thumb=e.img?`<img class="entry-thumb" src="${e.img}" onclick="openLightbox('${e.img.replace(/'/g,"\\'")}')"/>`:'';
+        html+=`<div class="entry ${e.type}">${thumb}
+          <div class="entry-info">
+            <div class="entry-desc">${esc(e.desc)}</div>
+            <div class="entry-tags">${e.category?`<span class="etag">${esc(e.category)}</span>`:''}<span class="etag">${esc(e.method||'')}</span>${e.ref?`<span class="etag">#${esc(e.ref)}</span>`:''}</div>
+            ${e.note?`<div class="entry-note">${esc(e.note)}</div>`:''}
+          </div>
+          <div class="entry-right"><div class="eamount">${sign}${s}${e.amount.toLocaleString('th-TH',{minimumFractionDigits:2})}</div>
+          ${ getSheetUrl() ? (e.synced?'<span class="entry-synced">☁ ส่งแล้ว</span>':`<span class="entry-unsynced" onclick="syncOne(${e.id})">↑ ส่งไป Sheet</span>`) : '' }
+          <button class="edel" onclick="deleteEntry(${e.id})">✕</button></div>
+        </div>`;
+      });
     });
   });
   list.innerHTML=html;
+  // set initial sticky label to the first (newest) month
+  const sticky=document.getElementById('monthSticky');
+  if(months.length){ sticky.textContent=monthLabel(months[0]); }
+  updateStickyMonth();
 }
+
+// update sticky month label based on which month-head is at the top of the viewport
+function updateStickyMonth(){
+  const sticky=document.getElementById('monthSticky');
+  const heads=document.querySelectorAll('.month-head');
+  if(!heads.length){ return; }
+  const stickyBottom = sticky.getBoundingClientRect().bottom;
+  let current=heads[0].getAttribute('data-label');
+  heads.forEach(h=>{
+    const top=h.getBoundingClientRect().top;
+    if(top <= stickyBottom+4){ current=h.getAttribute('data-label'); }
+  });
+  sticky.textContent=current;
+}
+window.addEventListener('scroll', ()=>{ requestAnimationFrame(updateStickyMonth); }, {passive:true});
+
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 let _tt; function toast(msg,type=''){ const t=document.getElementById('toastEl'); t.textContent=msg; t.className='toast show'+(type?' '+type:''); clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2600); }
 
