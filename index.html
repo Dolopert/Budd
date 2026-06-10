@@ -191,6 +191,31 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 .cat-row .cx:hover { color:var(--red); }
 
 .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.82); z-index:200; display:none; align-items:center; justify-content:center; }
+
+/* Batch review (swipe) */
+.review-screen { position:fixed; inset:0; background:var(--bg); z-index:250; display:none; flex-direction:column; }
+.review-screen.show { display:flex; }
+.review-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; padding-top:max(14px,env(safe-area-inset-top)); background:var(--ink); color:#fff; font-family:'IBM Plex Mono',monospace; font-size:12px; }
+.review-close { background:none; border:1px solid #555; color:#ccc; border-radius:3px; padding:4px 10px; font-family:inherit; font-size:11px; cursor:pointer; }
+.review-stage { flex:1; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; padding:16px; }
+.swipe-card { position:absolute; width:min(92%,420px); max-height:100%; background:#fff; border-radius:10px; box-shadow:0 6px 28px rgba(0,0,0,.18); overflow:hidden; display:flex; flex-direction:column; touch-action:pan-y; will-change:transform; }
+.swipe-card .sc-img { width:100%; height:200px; object-fit:contain; background:#f3f3f0; border-bottom:1px solid var(--rule); }
+.swipe-card .sc-body { padding:14px 16px; overflow:auto; }
+.swipe-card .sc-amt { font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; }
+.swipe-card .sc-amt.income { color:var(--green); } .swipe-card .sc-amt.expense { color:var(--red); }
+.swipe-card .sc-row { display:flex; justify-content:space-between; font-size:13px; padding:5px 0; border-bottom:1px solid var(--faint); gap:10px; }
+.swipe-card .sc-row .k { color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; flex-shrink:0; }
+.swipe-card .sc-row .v { text-align:right; word-break:break-word; }
+.swipe-stamp { position:absolute; top:18px; padding:6px 14px; font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:18px; border:3px solid; border-radius:6px; opacity:0; transform:rotate(-12deg); }
+.swipe-stamp.save { left:18px; color:var(--green); border-color:var(--green); }
+.swipe-stamp.skip { right:18px; color:var(--red); border-color:var(--red); }
+.review-hint { display:flex; justify-content:space-between; padding:6px 22px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); }
+.review-hint .rh-left { color:var(--green); } .review-hint .rh-right { color:var(--red); }
+.review-buttons { display:flex; gap:10px; padding:12px 18px; padding-bottom:max(14px,env(safe-area-inset-bottom)); }
+.rv-btn { flex:1; padding:13px; border-radius:8px; border:none; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; cursor:pointer; }
+.rv-btn.skip { background:var(--red-bg); color:var(--red); }
+.rv-btn.edit { background:var(--faint); color:var(--ink); flex:0 0 80px; }
+.rv-btn.save { background:var(--green); color:#fff; }
 .lightbox.show { display:flex; }
 .lightbox img { max-width:90vw; max-height:88vh; border-radius:3px; }
 .lb-close { position:absolute; top:16px; right:20px; background:none; border:none; color:white; font-size:28px; cursor:pointer; }
@@ -230,10 +255,12 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 
     <div class="img-zone" id="imgZone">
       <input type="file" id="fileInput" accept="image/*"/>
+      <input type="file" id="batchInput" accept="image/*" multiple style="display:none"/>
       <div class="img-placeholder" id="imgPlaceholder">
         <div class="icon">🧾</div>
         <div class="txt">แนบรูปสลิป หรือ <span id="browseLink">เลือกไฟล์</span></div>
         <div class="txt" style="font-size:11px;margin-top:-2px;">สแกนฟอร์ม (OCR) + QR — ทำงานในเครื่อง</div>
+        <div class="txt" style="font-size:11px;margin-top:4px;"><span id="batchLink" style="color:var(--blue);text-decoration:underline;cursor:pointer;pointer-events:all">📑 แนบหลายสลิปพร้อมกัน</span></div>
       </div>
       <img class="slip-preview" id="slipPreview" alt="slip"/>
       <div class="img-actions">
@@ -404,6 +431,27 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
   <button class="lb-close">✕</button>
   <img id="lbImg" src="" alt="slip"/>
 </div>
+
+<!-- Batch review (swipe) screen -->
+<div class="review-screen" id="reviewScreen">
+  <div class="review-head">
+    <span id="reviewProgress">1 / 1</span>
+    <button class="review-close" onclick="closeReview()">✕ ปิด</button>
+  </div>
+  <div class="review-stage" id="reviewStage">
+    <!-- cards injected here -->
+  </div>
+  <div class="review-hint">
+    <span class="rh-left">⬅ ปัดซ้าย = บันทึก</span>
+    <span class="rh-right">ข้าม = ปัดขวา ➡</span>
+  </div>
+  <div class="review-buttons">
+    <button class="rv-btn skip" onclick="reviewDecide('skip')">✕ ข้าม</button>
+    <button class="rv-btn edit" onclick="reviewEdit()">✎ แก้ไข</button>
+    <button class="rv-btn save" onclick="reviewDecide('save')">✓ บันทึก</button>
+  </div>
+</div>
+
 <div class="toast" id="toastEl"></div>
 <canvas id="qrCanvas" style="display:none;"></canvas>
 <canvas id="ocrCanvas" style="display:none;"></canvas>
@@ -564,6 +612,160 @@ btnScan.onclick=async e=>{
   const n=Object.values(found).filter(v=>v!=null && v!=='').length;
   toast(n? `สแกนฟอร์มแล้ว พบ ${n} ช่อง ✓` : 'อ่านได้ไม่ชัด — กรุณากรอกเอง', n?'ok':'err');
 };
+
+// ════════ Batch: หลายสลิป + ปัดยืนยัน ════════
+let reviewQueue=[];   // [{found, thumb, dataUrl}]
+let reviewIdx=0;
+
+document.getElementById('batchLink').onclick=e=>{ e.stopPropagation(); document.getElementById('batchInput').click(); };
+document.getElementById('batchInput').onchange=e=>{
+  const files=[...e.target.files]; e.target.value='';
+  if(files.length) runBatch(files);
+};
+
+function loadImageEl(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=ev=>{ const im=new Image(); im.onload=()=>resolve({img:im,dataUrl:ev.target.result}); im.onerror=reject; im.src=ev.target.result; };
+    r.onerror=reject; r.readAsDataURL(file);
+  });
+}
+function ocrCanvasFrom(imgEl){
+  const c=document.createElement('canvas'), ctx=c.getContext('2d');
+  let w=imgEl.naturalWidth,h=imgEl.naturalHeight;
+  const target=2000; const scale=Math.min(3,target/Math.max(w,h));
+  w=Math.round(w*scale); h=Math.round(h*scale); c.width=w; c.height=h;
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high'; ctx.drawImage(imgEl,0,0,w,h);
+  const img=ctx.getImageData(0,0,w,h),p=img.data; let sum=0;
+  for(let i=0;i<p.length;i+=4){ const g=0.299*p[i]+0.587*p[i+1]+0.114*p[i+2]; p[i]=p[i+1]=p[i+2]=g; sum+=g; }
+  const avg=sum/(p.length/4), thr=avg*0.92;
+  for(let i=0;i<p.length;i+=4){ let g=p[i]; g=(g-128)*1.6+128; if(g<thr-30)g=Math.max(0,g-40); else if(g>thr+30)g=Math.min(255,g+40); g=g<0?0:g>255?255:g; p[i]=p[i+1]=p[i+2]=g; }
+  ctx.putImageData(img,0,0); return c;
+}
+function qrFrom(imgEl){
+  try{ const c=document.createElement('canvas'),ctx=c.getContext('2d'); let w=imgEl.naturalWidth,h=imgEl.naturalHeight; const s=Math.min(1,1400/Math.max(w,h)); w=Math.round(w*s);h=Math.round(h*s); c.width=w;c.height=h; ctx.drawImage(imgEl,0,0,w,h); const d=ctx.getImageData(0,0,w,h); const code=(typeof jsQR==='function')?jsQR(d.data,w,h,{inversionAttempts:'attemptBoth'}):null; return code?code.data:null; }catch{ return null; }
+}
+function makeThumbFrom(imgEl){
+  try{ const max=360; let w=imgEl.naturalWidth,h=imgEl.naturalHeight; const s=Math.min(1,max/Math.max(w,h)); const cw=Math.round(w*s),ch=Math.round(h*s); const c=document.createElement('canvas'); c.width=cw;c.height=ch; const x=c.getContext('2d'); x.fillStyle='#fff';x.fillRect(0,0,cw,ch); x.drawImage(imgEl,0,0,cw,ch); return c.toDataURL('image/jpeg',0.7); }catch{ return null; }
+}
+
+async function runBatch(files){
+  if(typeof Tesseract==='undefined'){ toast('OCR ยังโหลดไม่เสร็จ ลองใหม่','err'); return; }
+  reviewQueue=[]; reviewIdx=0;
+  scanOverlay.classList.add('show'); imgZone.classList.add('has-img');
+  imgHolder.style.display='none';
+  let i=0;
+  for(const f of files){
+    i++;
+    scanTxt.textContent=`กำลังอ่านสลิป ${i}/${files.length}…`; scanBar.style.width='0%';
+    try{
+      const {img,dataUrl}=await loadImageEl(f);
+      const qr=qrFrom(img);
+      let text='';
+      try{ const res=await Tesseract.recognize(ocrCanvasFrom(img),'tha+eng',{ logger:m=>{ if(m.status==='recognizing text') scanBar.style.width=Math.round(m.progress*100)+'%'; } }); text=res?.data?.text||''; }catch{}
+      const found=parseSlipText(text);
+      // QR reference
+      if(qr){ const rm=qr.match(/(?:ref|transRef|billerID)[=:]?\s*([A-Za-z0-9]{6,})/i)||qr.match(/[?&]ref=([A-Za-z0-9]{6,})/i)||qr.match(/\b([A-Za-z0-9]{12,})\b/); if(rm && !found.ref) found.ref=rm[1]; }
+      // category
+      const c=classifyCategory(found); if(c) found.category=c.cat;
+      reviewQueue.push({ found, thumb:makeThumbFrom(img), dataUrl });
+    }catch{}
+  }
+  scanOverlay.classList.remove('show'); resetImage();
+  if(!reviewQueue.length){ toast('อ่านสลิปไม่สำเร็จ','err'); return; }
+  openReview();
+}
+
+function openReview(){ reviewIdx=0; document.getElementById('reviewScreen').classList.add('show'); showReviewCard(); }
+function closeReview(){ document.getElementById('reviewScreen').classList.remove('show'); document.getElementById('reviewStage').innerHTML=''; }
+
+function showReviewCard(){
+  const stage=document.getElementById('reviewStage');
+  stage.innerHTML='';
+  document.getElementById('reviewProgress').textContent=`${Math.min(reviewIdx+1,reviewQueue.length)} / ${reviewQueue.length}`;
+  if(reviewIdx>=reviewQueue.length){ finishReview(); return; }
+  const item=reviewQueue[reviewIdx];
+  const f=item.found;
+  const typeTh=f.type==='income'?'รายรับ':'รายจ่าย';
+  const sym=f.currency||'฿';
+  const card=document.createElement('div'); card.className='swipe-card';
+  card.innerHTML=`
+    ${item.thumb?`<img class="sc-img" src="${item.thumb}"/>`:''}
+    <div class="sc-body">
+      <div class="sc-amt ${f.type||'expense'}">${f.type==='income'?'+':'−'}${sym}${(f.amount||0).toLocaleString('th-TH',{minimumFractionDigits:2})}</div>
+      <div class="sc-row"><span class="k">ประเภท</span><span class="v">${typeTh}</span></div>
+      <div class="sc-row"><span class="k">รายการ</span><span class="v">${esc(f.desc||'-')}</span></div>
+      <div class="sc-row"><span class="k">วันที่</span><span class="v">${esc(f.date||'-')}</span></div>
+      <div class="sc-row"><span class="k">หมวด</span><span class="v">${esc(f.category||'-')}</span></div>
+      <div class="sc-row"><span class="k">เลขอ้างอิง</span><span class="v">${esc(f.ref||'-')}</span></div>
+      ${f.note?`<div class="sc-row"><span class="k">หมายเหตุ</span><span class="v">${esc(f.note)}</span></div>`:''}
+    </div>
+    <div class="swipe-stamp save">บันทึก</div>
+    <div class="swipe-stamp skip">ข้าม</div>`;
+  stage.appendChild(card);
+  attachSwipe(card);
+}
+
+function attachSwipe(card){
+  let startX=0, curX=0, dragging=false;
+  const stampSave=card.querySelector('.swipe-stamp.save');
+  const stampSkip=card.querySelector('.swipe-stamp.skip');
+  const onDown=x=>{ startX=x; dragging=true; card.style.transition='none'; };
+  const onMove=x=>{ if(!dragging)return; curX=x-startX; card.style.transform=`translateX(${curX}px) rotate(${curX/25}deg)`; const o=Math.min(1,Math.abs(curX)/120); if(curX<0){ stampSave.style.opacity=o; stampSkip.style.opacity=0; } else { stampSkip.style.opacity=o; stampSave.style.opacity=0; } };
+  const onUp=()=>{ if(!dragging)return; dragging=false; card.style.transition='transform .25s ease'; const TH=110;
+    if(curX<-TH){ flyOut(card,-1); reviewDecide('save'); }
+    else if(curX>TH){ flyOut(card,1); reviewDecide('skip'); }
+    else { card.style.transform=''; stampSave.style.opacity=0; stampSkip.style.opacity=0; } curX=0; };
+  card.addEventListener('touchstart',e=>onDown(e.touches[0].clientX),{passive:true});
+  card.addEventListener('touchmove',e=>onMove(e.touches[0].clientX),{passive:true});
+  card.addEventListener('touchend',onUp);
+  card.addEventListener('mousedown',e=>onDown(e.clientX));
+  window.addEventListener('mousemove',e=>{ if(dragging) onMove(e.clientX); });
+  window.addEventListener('mouseup',()=>{ if(dragging) onUp(); });
+}
+function flyOut(card,dir){ card.style.transform=`translateX(${dir*600}px) rotate(${dir*30}deg)`; card.style.opacity='0'; }
+
+function reviewDecide(action){
+  const item=reviewQueue[reviewIdx];
+  if(!item){ return; }
+  if(action==='save'){ saveFromReview(item.found, item.thumb); }
+  reviewIdx++;
+  setTimeout(showReviewCard, 180);
+}
+
+function reviewEdit(){
+  // load current card into the main form for manual edit, pause review
+  const item=reviewQueue[reviewIdx]; if(!item) return;
+  closeReview();
+  applyParsed(item.found);
+  if(item.dataUrl){ slipThumb=item.thumb; const im=new Image(); im.onload=()=>{slipImgEl=im;}; im.src=item.dataUrl;
+    slipPrev.src=item.dataUrl; slipPrev.classList.add('show'); imgHolder.style.display='none'; imgZone.classList.add('has-img'); }
+  // remove this item so it isn't double-counted
+  reviewQueue.splice(reviewIdx,1);
+  toast('แก้ไขในฟอร์มแล้วกดบันทึกเองได้เลย','ok');
+}
+
+function saveFromReview(f, thumb){
+  if(!f.amount || f.amount<=0){ return; } // skip invalid
+  const entry={ id:Date.now()+Math.floor(Math.random()*1000), type:f.type||'expense',
+    desc:f.desc||'(ไม่มีรายการ)', amount:f.amount, date:f.date||new Date().toISOString().split('T')[0],
+    currency:f.currency||'฿', category:f.category||'', method:'โอนเงิน (Internet Banking)',
+    ref:f.ref||'', note:f.note||'', img:thumb||null };
+  entries.unshift(entry);
+  rememberCategory(entry);
+  save();
+  // auto-send if configured + enabled
+  if(getSheetUrl() && autoSendOn()){ entry.synced=true; sendToSheet([sheetRow(entry)]).catch(()=>{ entry.synced=false; save(); }); }
+}
+
+function finishReview(){
+  const saved=reviewQueue.length; // not exact, but indicates done
+  closeReview();
+  render();
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast('จบการตรวจสลิปทั้งหมด ✓','ok');
+}
+
 
 // ── Parse OCR text (note is NOT auto-filled) ──
 // ── OCR noise cleaning ──
