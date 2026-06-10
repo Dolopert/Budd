@@ -688,8 +688,20 @@ function getCatRules(){
   return Object.keys(map).map(cat=>({cat, kw:map[cat]}));
 }
 
+// Memory format v2: { key: { "หมวด A": count, "หมวด B": count } }
+// (v1 was { key: "หมวด" } — auto-converted on read)
 function learnedMap(){ try{ return JSON.parse(localStorage.getItem('fs9_catMemory')||'{}'); }catch{ return {}; } }
 function saveLearned(m){ try{ localStorage.setItem('fs9_catMemory',JSON.stringify(m)); }catch{} }
+
+// get the winning (most frequent) category for a key, with counts
+function bestCatFor(key){
+  const mem=learnedMap(); const v=mem[key];
+  if(!v) return null;
+  if(typeof v==='string') return { cat:v, count:1, total:1 }; // v1 format
+  let bestCat=null, bestN=0, total=0;
+  for(const c in v){ total+=v[c]; if(v[c]>bestN){ bestN=v[c]; bestCat=c; } }
+  return bestCat? { cat:bestCat, count:bestN, total } : null;
+}
 
 // ── Keyword dataset management ──
 function kwCount(){ return getCatRules().reduce((s,r)=>s+r.kw.length,0); }
@@ -733,8 +745,11 @@ document.getElementById('kwFile').onchange=e=>{
 // push local category memory to the Sheet (Categories tab)
 async function pushCats(){
   const url=getSheetUrl(); if(!url) return false;
-  const cats=learnedMap();
-  if(!Object.keys(cats).length) return false;
+  const mem=learnedMap();
+  if(!Object.keys(mem).length) return false;
+  // send winning category per key (Sheet stores simple key→category)
+  const cats={};
+  for(const k in mem){ const b=bestCatFor(k); if(b) cats[k]=b.cat; }
   try{
     await fetch(url,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ action:'cats', cats }) });
@@ -744,7 +759,7 @@ async function pushCats(){
   }
 }
 
-// pull category memory from the Sheet and merge into local (local wins on conflict only if newer? -> here: merge, cloud fills gaps)
+// pull category memory from the Sheet and merge into local (fills gaps with count=1)
 async function pullCats(silent){
   const url=getSheetUrl(); if(!url){ if(!silent) toast('ยังไม่ได้ตั้งค่า Sheet URL','err'); return false; }
   try{
@@ -753,7 +768,15 @@ async function pullCats(silent){
     if(info && info.ok && info.cats){
       const local=learnedMap();
       let added=0;
-      for(const k in info.cats){ if(!local[k]){ local[k]=info.cats[k]; added++; } }
+      for(const k in info.cats){
+        const cloudCat=info.cats[k];
+        if(!cloudCat) continue;
+        let v=local[k];
+        if(typeof v==='string') v={ [v]:1 };
+        if(!v){ v={}; added++; }
+        if(!v[cloudCat]) v[cloudCat]=1;   // adopt cloud category if missing
+        local[k]=v;
+      }
       saveLearned(local);
       if(!silent) toast(`ดึงความจำหมวดจากคลาวด์ +${added} ✓`,'ok');
       return true;
@@ -805,16 +828,16 @@ function normDate(v){
 // returns {cat, source} or null
 function classifyCategory(found){
   const mem = learnedMap();
-  // Level 2a: exact payee key match (strongest signal)
+  // Level 2a: exact payee key match — pick most-used category (frequency weighted)
   const pk = payeeKey(found.payee) || payeeKey(found.receiver) || payeeKey(found.sender);
-  if(pk && mem[pk]) return { cat:mem[pk], source:'learned-payee' };
+  if(pk){ const b=bestCatFor(pk); if(b) return { cat:b.cat, source:'learned-payee', count:b.count, total:b.total }; }
 
   const hay = ((found.fullText||'')+' '+(found.desc||'')+' '+(found.note||'')+' '+(found.payee||'')).toUpperCase();
   if(!hay.trim()) return null;
 
-  // Level 2b: any learned key contained in text
+  // Level 2b: any learned key contained in text — most-used wins
   for(const key in mem){
-    if(key && hay.includes(key)) return { cat:mem[key], source:'learned' };
+    if(key && hay.includes(key)){ const b=bestCatFor(key); if(b) return { cat:b.cat, source:'learned', count:b.count, total:b.total }; }
   }
 
   // Level 1: keyword rules
@@ -826,13 +849,18 @@ function classifyCategory(found){
   return null;
 }
 
-// remember the user's choice so next time the same payee auto-categorizes
+// remember the user's choice — increment count for this payee→category pair
 function rememberCategory(entry){
   if(!entry || !entry.category) return;
   const key = payeeKey(entry.note) || payeeKey(entry.desc);
-  if(key && key.length>=3){
-    const mem=learnedMap(); mem[key]=entry.category; saveLearned(mem);
-  }
+  if(!key || key.length<3) return;
+  const mem=learnedMap();
+  let v=mem[key];
+  if(typeof v==='string') v={ [v]:1 };   // upgrade v1 → v2
+  if(!v || typeof v!=='object') v={};
+  v[entry.category]=(v[entry.category]||0)+1;
+  mem[key]=v;
+  saveLearned(mem);
 }
 
 function applyParsed(d){
@@ -1337,10 +1365,20 @@ function renderCatList(){
   document.getElementById('catCount').textContent=keys.length;
   const box=document.getElementById('catList');
   if(!keys.length){ box.innerHTML='<span style="font-size:11px;color:var(--muted)">ยังไม่มีความจำ</span>'; return; }
-  box.innerHTML=keys.map(k=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid var(--faint);font-size:11px">
-    <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k)} → <b>${esc(mem[k])}</b></span>
+  box.innerHTML=keys.map(k=>{
+    const b=bestCatFor(k);
+    const v=mem[k];
+    // build a small breakdown like "ของชำ×5, อาหาร×1"
+    let detail='';
+    if(v && typeof v==='object'){
+      const parts=Object.keys(v).sort((a,c)=>v[c]-v[a]).map(c=>`${esc(c)}×${v[c]}`);
+      if(parts.length>1) detail=`<span style="color:var(--muted);font-size:9px"> (${parts.join(', ')})</span>`;
+    }
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid var(--faint);font-size:11px">
+    <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k)} → <b>${esc(b?b.cat:'')}</b>${detail}</span>
     <button onclick="adminDeleteCat('${esc(k).replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px">✕</button>
-  </div>`).join('');
+  </div>`;
+  }).join('');
 }
 function adminDeleteCat(key){
   const mem=learnedMap(); delete mem[key]; saveLearned(mem); renderCatList(); toast('ลบแล้ว','ok');
