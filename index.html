@@ -54,6 +54,19 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 .perf-bot { border-top:1px solid var(--rule); border-bottom:none; }
 
 .img-zone { margin:16px 18px 0; border:2px dashed var(--rule); border-radius:3px; background:var(--faint); cursor:pointer; transition:border-color .2s,background .2s; position:relative; overflow:hidden; min-height:100px; display:flex; align-items:center; justify-content:center; }
+.batch-btn { display:block; width:calc(100% - 36px); margin:8px 18px 0; padding:10px; background:var(--blue-bg); border:1px solid var(--blue); border-radius:3px; color:var(--blue); font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; cursor:pointer; }
+.batch-btn:hover { background:#E0EBFF; }
+.batch-tray { margin:8px 18px 0; border:1px solid var(--rule); border-radius:4px; background:#fff; padding:10px; }
+.batch-tray-head { display:flex; justify-content:space-between; align-items:center; font-family:'IBM Plex Mono',monospace; font-size:11px; margin-bottom:8px; }
+.batch-clear { background:none; border:none; color:var(--red); font-size:11px; cursor:pointer; font-family:inherit; }
+.batch-thumbs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; max-height:160px; overflow:auto; }
+.batch-thumbs .bt-item { position:relative; width:60px; height:60px; border-radius:4px; overflow:hidden; border:1px solid var(--rule); }
+.batch-thumbs .bt-item img { width:100%; height:100%; object-fit:cover; }
+.batch-thumbs .bt-item .bt-x { position:absolute; top:1px; right:1px; width:16px; height:16px; background:rgba(0,0,0,.6); color:#fff; border:none; border-radius:50%; font-size:10px; cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center; }
+.batch-tray-actions { display:flex; gap:8px; }
+.batch-add-more { flex:0 0 auto; padding:9px 14px; background:var(--faint); border:1px solid var(--rule); border-radius:3px; font-family:'IBM Plex Mono',monospace; font-size:11px; cursor:pointer; }
+.batch-start { flex:1; padding:9px; background:var(--blue); border:none; border-radius:3px; color:#fff; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; cursor:pointer; }
+.batch-start:disabled { opacity:.5; }
 .img-zone:hover { border-color:var(--blue); background:var(--blue-bg); }
 .img-zone.has-img { border-style:solid; border-color:var(--rule); background:white; min-height:0; cursor:default; }
 .img-zone.drag-over { border-color:var(--blue); background:var(--blue-bg); }
@@ -255,12 +268,10 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 
     <div class="img-zone" id="imgZone">
       <input type="file" id="fileInput" accept="image/*"/>
-      <input type="file" id="batchInput" accept="image/*" multiple style="display:none"/>
       <div class="img-placeholder" id="imgPlaceholder">
         <div class="icon">🧾</div>
         <div class="txt">แนบรูปสลิป หรือ <span id="browseLink">เลือกไฟล์</span></div>
         <div class="txt" style="font-size:11px;margin-top:-2px;">สแกนฟอร์ม (OCR) + QR — ทำงานในเครื่อง</div>
-        <div class="txt" style="font-size:11px;margin-top:4px;"><span id="batchLink" style="color:var(--blue);text-decoration:underline;cursor:pointer;pointer-events:all">📑 แนบหลายสลิปพร้อมกัน</span></div>
       </div>
       <img class="slip-preview" id="slipPreview" alt="slip"/>
       <div class="img-actions">
@@ -271,6 +282,19 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
         <div class="spinner"></div>
         <div class="scan-txt" id="scanTxt">กำลังเตรียม…</div>
         <div class="scan-bar"><div class="scan-bar-fill" id="scanBar"></div></div>
+      </div>
+    </div>
+    <button type="button" id="batchBtn" class="batch-btn">📑 แนบหลายสลิป</button>
+    <input type="file" id="batchInput" accept="image/*" multiple style="display:none"/>
+    <div id="batchTray" class="batch-tray" style="display:none">
+      <div class="batch-tray-head">
+        <span id="batchTrayCount">เลือกแล้ว 0 รูป</span>
+        <button type="button" onclick="clearBatchTray()" class="batch-clear">ล้าง</button>
+      </div>
+      <div id="batchThumbs" class="batch-thumbs"></div>
+      <div class="batch-tray-actions">
+        <button type="button" id="batchAddMore" class="batch-add-more">＋ เพิ่มรูป</button>
+        <button type="button" id="batchStart" class="batch-start">🔍 เริ่มสแกน (0)</button>
       </div>
     </div>
 
@@ -344,6 +368,7 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
       <button class="data-btn" onclick="exportCSV()">⬇ ส่งออก CSV</button>
       <button class="data-btn" onclick="document.getElementById('importFile').click()">⬆ นำเข้าไฟล์</button>
       <button class="data-btn" onclick="openSheetSettings()">⚙ ตั้งค่า Sheet</button>
+      <button class="data-btn" onclick="setMyAccountsPrompt()">👤 บัญชีของฉัน (ระบุทิศโอน)</button>
     </div>
 
     <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px">Dataset Keyword คัดแยกหมวด</div>
@@ -617,11 +642,40 @@ btnScan.onclick=async e=>{
 let reviewQueue=[];   // [{found, thumb, dataUrl}]
 let reviewIdx=0;
 
-document.getElementById('batchLink').onclick=e=>{ e.stopPropagation(); document.getElementById('batchInput').click(); };
+let batchFiles=[];   // accumulated File objects waiting to be scanned
+
+document.getElementById('batchBtn').onclick=()=>{ document.getElementById('batchInput').click(); };
+document.getElementById('batchAddMore').onclick=()=>{ document.getElementById('batchInput').click(); };
 document.getElementById('batchInput').onchange=e=>{
   const files=[...e.target.files]; e.target.value='';
-  if(files.length) runBatch(files);
+  files.forEach(f=>batchFiles.push(f));
+  renderBatchTray();
 };
+document.getElementById('batchStart').onclick=()=>{
+  if(!batchFiles.length) return;
+  const files=batchFiles.slice();
+  clearBatchTray();
+  runBatch(files);
+};
+function clearBatchTray(){ batchFiles=[]; renderBatchTray(); }
+function removeBatchAt(i){ batchFiles.splice(i,1); renderBatchTray(); }
+function renderBatchTray(){
+  const tray=document.getElementById('batchTray');
+  const thumbs=document.getElementById('batchThumbs');
+  if(!batchFiles.length){ tray.style.display='none'; thumbs.innerHTML=''; return; }
+  tray.style.display='block';
+  document.getElementById('batchTrayCount').textContent=`เลือกแล้ว ${batchFiles.length} รูป`;
+  document.getElementById('batchStart').textContent=`🔍 เริ่มสแกน (${batchFiles.length})`;
+  // render thumbnails
+  thumbs.innerHTML='';
+  batchFiles.forEach((f,i)=>{
+    const div=document.createElement('div'); div.className='bt-item';
+    const img=document.createElement('img');
+    const r=new FileReader(); r.onload=ev=>{ img.src=ev.target.result; }; r.readAsDataURL(f);
+    const x=document.createElement('button'); x.className='bt-x'; x.textContent='✕'; x.onclick=()=>removeBatchAt(i);
+    div.appendChild(img); div.appendChild(x); thumbs.appendChild(div);
+  });
+}
 
 function loadImageEl(file){
   return new Promise((resolve,reject)=>{
@@ -792,10 +846,37 @@ function cleanName(s){
   return t.trim();
 }
 
+// แก้คำ OCR ที่เพี้ยนบ่อยตามบริบท
+const OCR_FIXES = [
+  // โอนเงิน
+  [/โอ[งฺ]?ให้/g,'โอนให้'], [/โอเงิน/g,'โอนเงิน'], [/โองเงิน/g,'โอนเงิน'], [/โอน เงิน/g,'โอนเงิน'],
+  // จำนวน
+  [/จํานวน/g,'จำนวน'], [/จานวน/g,'จำนวน'], [/จํ?านวน/g,'จำนวน'],
+  // เลขที่รายการ
+  [/เลขที[่ี]?รายการ/g,'เลขที่รายการ'], [/เลขที รายการ/g,'เลขที่รายการ'],
+  // ค่าธรรมเนียม
+  [/ค่าธรรมเนี?ยม/g,'ค่าธรรมเนียม'], [/ค่าธรรมเนยม/g,'ค่าธรรมเนียม'],
+  // สำเร็จ
+  [/สาเร็จ/g,'สำเร็จ'], [/สํ?าเร็จ/g,'สำเร็จ'], [/ส[ัา]เร็จ/g,'สำเร็จ'],
+  // บาท
+  [/บา ท/g,'บาท'], [/บาห/g,'บาท'],
+  // พร้อมเพย์
+  [/พร้อมเพย/g,'พร้อมเพย์'], [/พรอมเพย์/g,'พร้อมเพย์'],
+  // นาย/นาง/นางสาว
+  [/น\s*\.\s*ส\s*\./g,'น.ส.'], [/นางสาๅ/g,'นางสาว'],
+  // ทั่วไป: ตัด zero-width / อักขระแปลก
+  [/[\u200B-\u200D\uFEFF]/g,''],
+];
+function fixOcrWords(t){
+  let s=t||'';
+  for(const [re,rep] of OCR_FIXES){ s=s.replace(re,rep); }
+  return s;
+}
+
 function parseSlipText(raw){
   const out={ amount:null, date:null, ref:null, type:null, desc:null, note:null, sender:null, receiver:null, payee:null };
   if(!raw) return out;
-  const text=raw.replace(/\u00A0/g,' ');
+  const text=fixOcrWords(raw.replace(/\u00A0/g,' '));
   // clean lines: drop pure-noise lines and stray single junk characters
   const lines=text.split(/\n+/)
     .map(l=>cleanLine(l))
@@ -844,6 +925,17 @@ function parseSlipText(raw){
   // first name = sender (ผู้โอน), second = receiver (ผู้รับ)
   out.sender = names[0] || null;
   out.receiver = names[1] || svc || null;
+
+  // ── ระบุทิศจากบัญชีตัวเอง (แม่นกว่าเดาจากคำ) ──
+  // ถ้าตั้งชื่อ/เลขบัญชีตัวเองไว้ใน Admin จะใช้ระบุว่าเงินเข้า/ออก
+  const me=getMyAccounts(); // array of keywords (ชื่อ/เลขบัญชี)
+  if(me.length){
+    const inSender = me.some(m=> out.sender && norm(out.sender).includes(norm(m)) );
+    const inReceiver = me.some(m=> out.receiver && norm(out.receiver).includes(norm(m)) );
+    // also check raw text halves: บัญชีเราอยู่ฝั่งบน(ผู้โอน)=จ่าย, ฝั่งล่าง(ผู้รับ)=รับ
+    if(inSender && !inReceiver) out.type='expense';
+    else if(inReceiver && !inSender) out.type='income';
+  }
 
   // For expense, the payee that matters = receiver. For income, the payer = sender.
   out.payee = (out.type==='income') ? (out.sender||out.receiver) : (out.receiver||out.sender);
@@ -987,6 +1079,18 @@ async function pullCats(silent){
   return false;
 }
 function payeeKey(s){ return (s||'').toUpperCase().replace(/[^A-Z0-9ก-๙]/g,'').slice(0,40); }
+// ── บัญชีตัวเอง (สำหรับระบุทิศโอนเข้า/ออก) ──
+function norm(s){ return (s||'').toUpperCase().replace(/[^A-Z0-9ก-๙]/g,''); }
+function getMyAccounts(){ try{ return JSON.parse(localStorage.getItem('fs9_myAccounts')||'[]'); }catch{ return []; } }
+function setMyAccounts(arr){ try{ localStorage.setItem('fs9_myAccounts',JSON.stringify(arr)); }catch{} }
+function setMyAccountsPrompt(){
+  const cur=getMyAccounts().join(', ');
+  const v=prompt('ใส่ชื่อ/เลขบัญชีของคุณ (คั่นด้วยจุลภาค)\nเช่น: นายสมชาย, 4347, พร้อมเพย์ของฉัน\n\nระบบใช้ระบุว่าสลิปเป็นเงินเข้าหรือออก', cur);
+  if(v===null) return;
+  const arr=v.split(',').map(s=>s.trim()).filter(s=>s.length>=2);
+  setMyAccounts(arr);
+  toast(arr.length?`บันทึกบัญชีตัวเอง ${arr.length} รายการ ✓`:'ล้างบัญชีตัวเองแล้ว','ok');
+}
 
 // pull transaction rows from the Sheet and merge into local (by id, no duplicates)
 async function pullData(silent){
