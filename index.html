@@ -374,6 +374,7 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
       <button class="data-btn" onclick="document.getElementById('importFile').click()">⬆ นำเข้าไฟล์</button>
       <button class="data-btn" onclick="openSheetSettings()">⚙ ตั้งค่า Sheet</button>
       <button class="data-btn" onclick="setMyAccountsPrompt()">👤 บัญชีของฉัน (ระบุทิศโอน)</button>
+      <button class="data-btn" id="btnUpdateApp" onclick="updateApp()" style="border-color:var(--blue);color:var(--blue)">🔄 อัปเดตแอป</button>
     </div>
 
     <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px">Dataset Keyword คัดแยกหมวด</div>
@@ -1678,8 +1679,45 @@ document.getElementById('fAmt').addEventListener('keydown',e=>{if(e.key==='Enter
 document.getElementById('sheetModal').addEventListener('click',e=>{ if(e.target.id==='sheetModal') closeSheetSettings(); });
 
 // register service worker (PWA offline support)
+// ── อัปเดตแอป: ล้าง cache + โหลดเวอร์ชันใหม่จาก GitHub ──
+async function updateApp(){
+  const btn=document.getElementById('btnUpdateApp');
+  btn.textContent='⏳ กำลังอัปเดต…'; btn.disabled=true;
+  try{
+    // 1. tell SW to skip waiting and activate new version
+    if('serviceWorker' in navigator){
+      const reg=await navigator.serviceWorker.getRegistration();
+      if(reg){
+        // force check for new SW
+        await reg.update();
+        if(reg.waiting){ reg.waiting.postMessage({type:'SKIP_WAITING'}); }
+      }
+    }
+    // 2. clear all caches so next load fetches fresh files
+    if('caches' in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.map(k=>caches.delete(k)));
+    }
+    toast('ล้าง cache แล้ว — กำลังโหลดเวอร์ชันใหม่…','ok');
+    // 3. reload after short delay
+    setTimeout(()=>{ window.location.reload(true); }, 900);
+  }catch(err){
+    toast('อัปเดตไม่สำเร็จ: '+(err.message||err),'err');
+    btn.textContent='🔄 อัปเดตแอป'; btn.disabled=false;
+  }
+}
+
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      // listen for controller change (new SW activated) → reload
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{
+        window.location.reload();
+      });
+      // check for updates in background every time app opens
+      reg.update().catch(()=>{});
+    }).catch(()=>{});
+  });
 }
 
 // ════════ Admin mode (client-side gate) ════════
