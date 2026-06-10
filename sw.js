@@ -1,7 +1,5 @@
 // Finance Slip — service worker
-// Caches the app shell so the app opens offline. OCR/QR libraries and Google Sheet
-// sync still need internet the first time / when syncing.
-const CACHE = 'finance-slip-v1';
+const CACHE = 'finance-slip-v2';
 const SHELL = [
   './',
   'index.html',
@@ -15,7 +13,7 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {})
   );
-  self.skipWaiting();
+  // don't skipWaiting here — wait for explicit signal or app update button
 });
 
 self.addEventListener('activate', (e) => {
@@ -27,17 +25,34 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
+// message from app: skip waiting and take control immediately
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  // Never cache Google Apps Script calls or CDN library requests — always go to network
   if (req.url.includes('script.google.com') ||
       req.url.includes('cdnjs.cloudflare.com') ||
       req.url.includes('cdn.jsdelivr.net') ||
       req.url.includes('fonts.googleapis.com') ||
       req.method !== 'GET') {
-    return; // let the browser handle it normally
+    return;
   }
-  // App shell: cache-first, fall back to network
+  // network-first for HTML (ensures fresh app on reload)
+  if (req.url.endsWith('.html') || req.url.endsWith('/') || req.url.includes('index.html')) {
+    e.respondWith(
+      fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+        return res;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
+  // cache-first for other assets (icons, manifest)
   e.respondWith(
     caches.match(req).then((cached) =>
       cached || fetch(req).then((res) => {
