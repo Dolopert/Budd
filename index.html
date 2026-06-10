@@ -205,30 +205,36 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 
 .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.82); z-index:200; display:none; align-items:center; justify-content:center; }
 
-/* Batch review (swipe) */
+/* Batch review (slider) */
 .review-screen { position:fixed; inset:0; background:var(--bg); z-index:250; display:none; flex-direction:column; }
 .review-screen.show { display:flex; }
 .review-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; padding-top:max(14px,env(safe-area-inset-top)); background:var(--ink); color:#fff; font-family:'IBM Plex Mono',monospace; font-size:12px; }
 .review-close { background:none; border:1px solid #555; color:#ccc; border-radius:3px; padding:4px 10px; font-family:inherit; font-size:11px; cursor:pointer; }
-.review-stage { flex:1; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; padding:16px; }
-.swipe-card { position:absolute; width:min(92%,420px); max-height:100%; background:#fff; border-radius:10px; box-shadow:0 6px 28px rgba(0,0,0,.18); overflow:hidden; display:flex; flex-direction:column; touch-action:pan-y; will-change:transform; }
-.swipe-card .sc-img { width:100%; height:200px; object-fit:contain; background:#f3f3f0; border-bottom:1px solid var(--rule); }
-.swipe-card .sc-body { padding:14px 16px; overflow:auto; }
-.swipe-card .sc-amt { font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; }
-.swipe-card .sc-amt.income { color:var(--green); } .swipe-card .sc-amt.expense { color:var(--red); }
-.swipe-card .sc-row { display:flex; justify-content:space-between; font-size:13px; padding:5px 0; border-bottom:1px solid var(--faint); gap:10px; }
-.swipe-card .sc-row .k { color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; flex-shrink:0; }
-.swipe-card .sc-row .v { text-align:right; word-break:break-word; }
-.swipe-stamp { position:absolute; top:18px; padding:6px 14px; font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:18px; border:3px solid; border-radius:6px; opacity:0; transform:rotate(-12deg); }
-.swipe-stamp.save { left:18px; color:var(--green); border-color:var(--green); }
-.swipe-stamp.skip { right:18px; color:var(--red); border-color:var(--red); }
-.review-hint { display:flex; justify-content:space-between; padding:6px 22px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); }
-.review-hint .rh-left { color:var(--green); } .review-hint .rh-right { color:var(--red); }
-.review-buttons { display:flex; gap:10px; padding:12px 18px; padding-bottom:max(14px,env(safe-area-inset-bottom)); }
-.rv-btn { flex:1; padding:13px; border-radius:8px; border:none; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; cursor:pointer; }
-.rv-btn.skip { background:var(--red-bg); color:var(--red); }
-.rv-btn.edit { background:var(--faint); color:var(--ink); flex:0 0 80px; }
-.rv-btn.save { background:var(--green); color:#fff; }
+.review-stage { flex:1; overflow:auto; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:18px 16px; gap:14px; }
+/* horizontal card (like the uploaded example) */
+.rcard { width:min(100%,440px); background:#1e2430; border-radius:16px; padding:16px 18px; display:flex; align-items:center; gap:14px; box-shadow:0 4px 18px rgba(0,0,0,.15); transition:transform .15s; }
+.rcard .rc-ico { width:46px; height:46px; border-radius:50%; background:#2c3340; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+.rcard .rc-mid { flex:1; min-width:0; }
+.rcard .rc-title { color:#fff; font-size:16px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rcard .rc-sub { color:#8b93a3; font-size:12px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rcard .rc-amt { font-size:17px; font-weight:700; font-family:'IBM Plex Mono',monospace; flex-shrink:0; }
+.rcard .rc-amt.income { color:#3ad29f; } .rcard .rc-amt.expense { color:#ff6b6b; }
+.rcard-img { width:min(100%,440px); max-height:240px; object-fit:contain; background:#f3f3f0; border-radius:10px; }
+.rcard-detail { width:min(100%,440px); background:#fff; border-radius:12px; padding:10px 14px; }
+.rcard-detail .rd-row { display:flex; justify-content:space-between; gap:10px; font-size:13px; padding:5px 0; border-bottom:1px solid var(--faint); }
+.rcard-detail .rd-row:last-child { border-bottom:none; }
+.rcard-detail .rd-row .k { color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; flex-shrink:0; }
+.rcard-detail .rd-row .v { text-align:right; word-break:break-word; }
+
+/* big slider */
+.slider-zone { padding:14px 18px; padding-bottom:max(16px,env(safe-area-inset-bottom)); }
+.slider-track { position:relative; height:60px; border-radius:30px; background:linear-gradient(90deg, var(--red-bg), var(--faint) 50%, var(--green-bg)); border:1px solid var(--rule); display:flex; align-items:center; justify-content:space-between; padding:0 20px; overflow:hidden; user-select:none; }
+.slider-label { font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; pointer-events:none; }
+.slider-label.left { color:var(--red); } .slider-label.right { color:var(--green); }
+.slider-knob { position:absolute; left:4px; top:4px; width:52px; height:52px; border-radius:50%; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center; font-size:20px; cursor:grab; touch-action:none; will-change:left; }
+.slider-knob:active { cursor:grabbing; }
+.slider-hint { text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); margin-top:8px; }
+.rv-edit-btn { display:block; width:100%; margin-top:10px; padding:10px; background:var(--faint); border:1px solid var(--rule); border-radius:8px; font-family:'IBM Plex Mono',monospace; font-size:12px; cursor:pointer; }
 .lightbox.show { display:flex; }
 .lightbox img { max-width:90vw; max-height:88vh; border-radius:3px; }
 .lb-close { position:absolute; top:16px; right:20px; background:none; border:none; color:white; font-size:28px; cursor:pointer; }
@@ -267,11 +273,11 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
     <div class="perf"></div>
 
     <div class="img-zone" id="imgZone">
-      <input type="file" id="fileInput" accept="image/*"/>
+      <input type="file" id="fileInput" accept="image/*" multiple/>
       <div class="img-placeholder" id="imgPlaceholder">
         <div class="icon">🧾</div>
         <div class="txt">แนบรูปสลิป หรือ <span id="browseLink">เลือกไฟล์</span></div>
-        <div class="txt" style="font-size:11px;margin-top:-2px;">สแกนฟอร์ม (OCR) + QR — ทำงานในเครื่อง</div>
+        <div class="txt" style="font-size:11px;margin-top:-2px;">เลือกได้หลายรูป · OCR + QR ในเครื่อง</div>
       </div>
       <img class="slip-preview" id="slipPreview" alt="slip"/>
       <div class="img-actions">
@@ -284,7 +290,6 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
         <div class="scan-bar"><div class="scan-bar-fill" id="scanBar"></div></div>
       </div>
     </div>
-    <button type="button" id="batchBtn" class="batch-btn">📑 แนบหลายสลิป</button>
     <input type="file" id="batchInput" accept="image/*" multiple style="display:none"/>
     <div id="batchTray" class="batch-tray" style="display:none">
       <div class="batch-tray-head">
@@ -457,23 +462,23 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
   <img id="lbImg" src="" alt="slip"/>
 </div>
 
-<!-- Batch review (swipe) screen -->
+<!-- Batch review (slider) screen -->
 <div class="review-screen" id="reviewScreen">
   <div class="review-head">
     <span id="reviewProgress">1 / 1</span>
     <button class="review-close" onclick="closeReview()">✕ ปิด</button>
   </div>
   <div class="review-stage" id="reviewStage">
-    <!-- cards injected here -->
+    <!-- horizontal card injected here -->
   </div>
-  <div class="review-hint">
-    <span class="rh-left">⬅ ปัดซ้าย = บันทึก</span>
-    <span class="rh-right">ข้าม = ปัดขวา ➡</span>
-  </div>
-  <div class="review-buttons">
-    <button class="rv-btn skip" onclick="reviewDecide('skip')">✕ ข้าม</button>
-    <button class="rv-btn edit" onclick="reviewEdit()">✎ แก้ไข</button>
-    <button class="rv-btn save" onclick="reviewDecide('save')">✓ บันทึก</button>
+  <div class="slider-zone">
+    <div class="slider-track" id="sliderTrack">
+      <span class="slider-label left">✕ ข้าม</span>
+      <span class="slider-label right">บันทึก ✓</span>
+      <div class="slider-knob" id="sliderKnob">⇆</div>
+    </div>
+    <div class="slider-hint">เลื่อนขวา = บันทึก · เลื่อนซ้าย = ข้าม</div>
+    <button class="rv-edit-btn" onclick="reviewEdit()">✎ แก้ไขใบนี้ในฟอร์ม</button>
   </div>
 </div>
 
@@ -503,7 +508,12 @@ const imgZone=document.getElementById('imgZone'), fileInput=document.getElementB
 
 document.getElementById('browseLink').onclick=e=>{e.stopPropagation();fileInput.click();};
 imgZone.onclick=e=>{ if(!imgZone.classList.contains('has-img')) fileInput.click(); };
-fileInput.onchange=e=>{ if(e.target.files[0]) loadImg(e.target.files[0]); };
+fileInput.onchange=e=>{
+  const files=[...e.target.files]; e.target.value='';
+  if(files.length===0) return;
+  if(files.length===1){ loadImg(files[0]); }       // single → normal form flow
+  else { files.forEach(f=>batchFiles.push(f)); renderBatchTray(); } // multiple → batch tray
+};
 imgZone.addEventListener('dragover',e=>{e.preventDefault();imgZone.classList.add('drag-over');});
 imgZone.addEventListener('dragleave',()=>imgZone.classList.remove('drag-over'));
 imgZone.addEventListener('drop',e=>{e.preventDefault();imgZone.classList.remove('drag-over'); if(e.dataTransfer.files[0]) loadImg(e.dataTransfer.files[0]);});
@@ -644,7 +654,6 @@ let reviewIdx=0;
 
 let batchFiles=[];   // accumulated File objects waiting to be scanned
 
-document.getElementById('batchBtn').onclick=()=>{ document.getElementById('batchInput').click(); };
 document.getElementById('batchAddMore').onclick=()=>{ document.getElementById('batchInput').click(); };
 document.getElementById('batchInput').onchange=e=>{
   const files=[...e.target.files]; e.target.value='';
@@ -733,6 +742,21 @@ async function runBatch(files){
 function openReview(){ reviewIdx=0; document.getElementById('reviewScreen').classList.add('show'); showReviewCard(); }
 function closeReview(){ document.getElementById('reviewScreen').classList.remove('show'); document.getElementById('reviewStage').innerHTML=''; }
 
+function catIcon(cat){
+  const c=cat||'';
+  if(/อาหาร|เครื่องดื่ม/.test(c)) return '🍔';
+  if(/ของชำ|ซุปเปอร์/.test(c)) return '🛒';
+  if(/เดินทาง/.test(c)) return '🚗';
+  if(/สาธารณูปโภค/.test(c)) return '💡';
+  if(/สุขภาพ|ยา/.test(c)) return '💊';
+  if(/ช้อปปิ้ง/.test(c)) return '🛍️';
+  if(/บันเทิง/.test(c)) return '🎬';
+  if(/เติมเงิน|wallet/i.test(c)) return '📲';
+  if(/เช่า|ที่พัก/.test(c)) return '🏠';
+  if(/การศึกษา/.test(c)) return '📚';
+  return '🧾';
+}
+
 function showReviewCard(){
   const stage=document.getElementById('reviewStage');
   stage.innerHTML='';
@@ -742,42 +766,65 @@ function showReviewCard(){
   const f=item.found;
   const typeTh=f.type==='income'?'รายรับ':'รายจ่าย';
   const sym=f.currency||'฿';
-  const card=document.createElement('div'); card.className='swipe-card';
+  const amtCls=f.type==='income'?'income':'expense';
+  const amtTxt=`${f.type==='income'?'+':'−'}${sym}${(f.amount||0).toLocaleString('th-TH',{minimumFractionDigits:2})}`;
+
+  // horizontal summary card (like the example image)
+  const card=document.createElement('div'); card.className='rcard';
   card.innerHTML=`
-    ${item.thumb?`<img class="sc-img" src="${item.thumb}"/>`:''}
-    <div class="sc-body">
-      <div class="sc-amt ${f.type||'expense'}">${f.type==='income'?'+':'−'}${sym}${(f.amount||0).toLocaleString('th-TH',{minimumFractionDigits:2})}</div>
-      <div class="sc-row"><span class="k">ประเภท</span><span class="v">${typeTh}</span></div>
-      <div class="sc-row"><span class="k">รายการ</span><span class="v">${esc(f.desc||'-')}</span></div>
-      <div class="sc-row"><span class="k">วันที่</span><span class="v">${esc(f.date||'-')}</span></div>
-      <div class="sc-row"><span class="k">หมวด</span><span class="v">${esc(f.category||'-')}</span></div>
-      <div class="sc-row"><span class="k">เลขอ้างอิง</span><span class="v">${esc(f.ref||'-')}</span></div>
-      ${f.note?`<div class="sc-row"><span class="k">หมายเหตุ</span><span class="v">${esc(f.note)}</span></div>`:''}
+    <div class="rc-ico">${catIcon(f.category)}</div>
+    <div class="rc-mid">
+      <div class="rc-title">${esc(f.desc||'(ไม่มีรายการ)')}</div>
+      <div class="rc-sub">${esc(f.category||typeTh)} · ${esc(f.date||'')}</div>
     </div>
-    <div class="swipe-stamp save">บันทึก</div>
-    <div class="swipe-stamp skip">ข้าม</div>`;
+    <div class="rc-amt ${amtCls}">${amtTxt}</div>`;
   stage.appendChild(card);
-  attachSwipe(card);
+
+  // slip image
+  if(item.thumb){ const im=document.createElement('img'); im.className='rcard-img'; im.src=item.thumb; stage.appendChild(im); }
+
+  // detail box
+  const det=document.createElement('div'); det.className='rcard-detail';
+  det.innerHTML=`
+    <div class="rd-row"><span class="k">ประเภท</span><span class="v">${typeTh}</span></div>
+    <div class="rd-row"><span class="k">วันที่</span><span class="v">${esc(f.date||'-')}</span></div>
+    <div class="rd-row"><span class="k">หมวด</span><span class="v">${esc(f.category||'-')}</span></div>
+    <div class="rd-row"><span class="k">เลขอ้างอิง</span><span class="v">${esc(f.ref||'-')}</span></div>
+    ${f.note?`<div class="rd-row"><span class="k">หมายเหตุ</span><span class="v">${esc(f.note)}</span></div>`:''}`;
+  stage.appendChild(det);
+
+  resetSlider();
 }
 
-function attachSwipe(card){
-  let startX=0, curX=0, dragging=false;
-  const stampSave=card.querySelector('.swipe-stamp.save');
-  const stampSkip=card.querySelector('.swipe-stamp.skip');
-  const onDown=x=>{ startX=x; dragging=true; card.style.transition='none'; };
-  const onMove=x=>{ if(!dragging)return; curX=x-startX; card.style.transform=`translateX(${curX}px) rotate(${curX/25}deg)`; const o=Math.min(1,Math.abs(curX)/120); if(curX<0){ stampSave.style.opacity=o; stampSkip.style.opacity=0; } else { stampSkip.style.opacity=o; stampSave.style.opacity=0; } };
-  const onUp=()=>{ if(!dragging)return; dragging=false; card.style.transition='transform .25s ease'; const TH=110;
-    if(curX<-TH){ flyOut(card,-1); reviewDecide('save'); }
-    else if(curX>TH){ flyOut(card,1); reviewDecide('skip'); }
-    else { card.style.transform=''; stampSave.style.opacity=0; stampSkip.style.opacity=0; } curX=0; };
-  card.addEventListener('touchstart',e=>onDown(e.touches[0].clientX),{passive:true});
-  card.addEventListener('touchmove',e=>onMove(e.touches[0].clientX),{passive:true});
-  card.addEventListener('touchend',onUp);
-  card.addEventListener('mousedown',e=>onDown(e.clientX));
-  window.addEventListener('mousemove',e=>{ if(dragging) onMove(e.clientX); });
-  window.addEventListener('mouseup',()=>{ if(dragging) onUp(); });
+// ── Big slider: drag right = save, left = skip ──
+function resetSlider(){
+  const knob=document.getElementById('sliderKnob');
+  const track=document.getElementById('sliderTrack');
+  knob.style.transition='none'; knob.style.left='4px';
+  setupSlider(knob,track);
 }
-function flyOut(card,dir){ card.style.transform=`translateX(${dir*600}px) rotate(${dir*30}deg)`; card.style.opacity='0'; }
+let _sliderBound=false;
+function setupSlider(knob,track){
+  if(_sliderBound) return; _sliderBound=true;
+  let dragging=false, startX=0, startLeft=4, maxLeft=0;
+  const calcMax=()=> track.clientWidth - knob.clientWidth - 8;
+  const onDown=x=>{ dragging=true; startX=x; startLeft=parseFloat(knob.style.left)||4; maxLeft=calcMax(); knob.style.transition='none'; };
+  const onMove=x=>{ if(!dragging)return; let nl=startLeft+(x-startX); nl=Math.max(4,Math.min(maxLeft,nl)); knob.style.left=nl+'px';
+    // tint by direction
+    const pct=nl/maxLeft;
+    knob.textContent = pct>0.7?'✓' : pct<0.15?'✕' : '⇆'; };
+  const onUp=()=>{ if(!dragging)return; dragging=false; maxLeft=calcMax(); const nl=parseFloat(knob.style.left)||4; const pct=nl/maxLeft;
+    knob.style.transition='left .2s ease';
+    if(pct>0.72){ knob.style.left=maxLeft+'px'; setTimeout(()=>{ reviewDecide('save'); },150); }
+    else if(pct<0.12){ knob.style.left='4px'; setTimeout(()=>{ reviewDecide('skip'); },150); }
+    else { knob.style.left='4px'; knob.textContent='⇆'; } };
+  knob.addEventListener('touchstart',e=>{onDown(e.touches[0].clientX);},{passive:true});
+  window.addEventListener('touchmove',e=>{ if(dragging){ onMove(e.touches[0].clientX); } },{passive:true});
+  window.addEventListener('touchend',onUp);
+  knob.addEventListener('mousedown',e=>{e.preventDefault();onDown(e.clientX);});
+  window.addEventListener('mousemove',e=>{ if(dragging) onMove(e.clientX); });
+  window.addEventListener('mouseup',onUp);
+}
 
 function reviewDecide(action){
   const item=reviewQueue[reviewIdx];
