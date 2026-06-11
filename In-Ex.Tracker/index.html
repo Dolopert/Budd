@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Finance Slip"/>
 <link rel="apple-touch-icon" href="icon-180.png"/>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
 <link rel="stylesheet" href="styles.css"/>
 </head>
@@ -1438,7 +1438,7 @@ function updateStickyMonth(){
 }
 window.addEventListener('scroll', ()=>{ requestAnimationFrame(updateStickyMonth); }, {passive:true});
 
-function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 let _tt; function toast(msg,type=''){ const t=document.getElementById('toastEl'); t.textContent=msg; t.className='toast show'+(type?' '+type:''); clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2600); }
 
 // ════════ Google Sheet sync ════════
@@ -1702,7 +1702,11 @@ document.getElementById('importFile').onchange=e=>{
       const existing=new Set(entries.map(x=>x.id));
       const merged=[...entries];
       let added=0;
-      data.forEach(d=>{ if(d && d.id && !existing.has(d.id)){ merged.push(d); added++; } });
+      data.forEach(d=>{
+        if(!d || d.id==null) return;
+        const id=Number(d.id); if(!Number.isFinite(id) || existing.has(id)) return;
+        d.id=id; merged.push(d); existing.add(id); added++;
+      });
       merged.sort((a,b)=>b.id-a.id);
       entries=merged; save(); render();
       toast(`นำเข้าแล้ว เพิ่ม ${added} รายการ ✓`,'ok');
