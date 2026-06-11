@@ -1,4 +1,4 @@
-let entries = JSON.parse(localStorage.getItem('fs9') || '[]');
+﻿let entries = JSON.parse(localStorage.getItem('fs9') || '[]');
 let curType = 'expense';
 let curFilter = 'all';
 let slipImgEl = null;     // full-res image for OCR/QR

@@ -1,4 +1,4 @@
-// Finance Slip — OCR text parsing module
+﻿// Finance Slip — OCR text parsing module
 // แยกมาจาก app.js (cleanLine, cleanName, meaningfulToken, OCR_FIXES, fixOcrWords, parseSlipText)
 // โหลดหลัง app.js — เรียก getMyAccounts()/norm() จาก app.js ตอน runtime
 
