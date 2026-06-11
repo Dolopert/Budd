@@ -205,36 +205,35 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 
 .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.82); z-index:200; display:none; align-items:center; justify-content:center; }
 
-/* Batch review (slider) */
-.review-screen { position:fixed; inset:0; background:var(--bg); z-index:250; display:none; flex-direction:column; }
+/* Batch review: listing */
+.review-screen { position:fixed; inset:0; background:#F2F1ED; z-index:250; display:none; flex-direction:column; }
 .review-screen.show { display:flex; }
-.review-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; padding-top:max(14px,env(safe-area-inset-top)); background:var(--ink); color:#fff; font-family:'IBM Plex Mono',monospace; font-size:12px; }
+.review-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; padding-top:max(14px,env(safe-area-inset-top)); background:#181816; color:#fff; font-family:'IBM Plex Mono',monospace; font-size:12px; flex-shrink:0; }
 .review-close { background:none; border:1px solid #555; color:#ccc; border-radius:3px; padding:4px 10px; font-family:inherit; font-size:11px; cursor:pointer; }
-.review-stage { flex:1; overflow:auto; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:18px 16px; gap:14px; }
-/* horizontal card (like the uploaded example) */
-.rcard { width:min(100%,440px); background:#1e2430; border-radius:16px; padding:16px 18px; display:flex; align-items:center; gap:14px; box-shadow:0 4px 18px rgba(0,0,0,.15); transition:transform .15s; }
-.rcard .rc-ico { width:46px; height:46px; border-radius:50%; background:#2c3340; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
-.rcard .rc-mid { flex:1; min-width:0; }
-.rcard .rc-title { color:#fff; font-size:16px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.rcard .rc-sub { color:#8b93a3; font-size:12px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.rcard .rc-amt { font-size:17px; font-weight:700; font-family:'IBM Plex Mono',monospace; flex-shrink:0; }
-.rcard .rc-amt.income { color:#3ad29f; } .rcard .rc-amt.expense { color:#ff6b6b; }
-.rcard-img { width:min(100%,440px); max-height:240px; object-fit:contain; background:#f3f3f0; border-radius:10px; }
-.rcard-detail { width:min(100%,440px); background:#fff; border-radius:12px; padding:10px 14px; }
-.rcard-detail .rd-row { display:flex; justify-content:space-between; gap:10px; font-size:13px; padding:5px 0; border-bottom:1px solid var(--faint); }
-.rcard-detail .rd-row:last-child { border-bottom:none; }
-.rcard-detail .rd-row .k { color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; flex-shrink:0; }
-.rcard-detail .rd-row .v { text-align:right; word-break:break-word; }
+.review-list { flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:10px; padding-bottom:max(20px,env(safe-area-inset-bottom)); }
 
-/* big slider */
-.slider-zone { padding:14px 18px; padding-bottom:max(16px,env(safe-area-inset-bottom)); }
-.slider-track { position:relative; height:60px; border-radius:30px; background:linear-gradient(90deg, var(--red-bg), var(--faint) 50%, var(--green-bg)); border:1px solid var(--rule); display:flex; align-items:center; justify-content:space-between; padding:0 20px; overflow:hidden; user-select:none; }
-.slider-label { font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; pointer-events:none; }
-.slider-label.left { color:var(--red); } .slider-label.right { color:var(--green); }
-.slider-knob { position:absolute; left:4px; top:4px; width:52px; height:52px; border-radius:50%; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center; font-size:20px; cursor:grab; touch-action:none; will-change:left; }
-.slider-knob:active { cursor:grabbing; }
-.slider-hint { text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); margin-top:8px; }
-.rv-edit-btn { display:block; width:100%; margin-top:10px; padding:10px; background:var(--faint); border:1px solid var(--rule); border-radius:8px; font-family:'IBM Plex Mono',monospace; font-size:12px; cursor:pointer; }
+/* swipe row wrapper */
+.sw-wrap { position:relative; border-radius:16px; overflow:hidden; flex-shrink:0; }
+.sw-bg { position:absolute; inset:0; display:flex; align-items:center; border-radius:16px; }
+.sw-bg .bg-save { position:absolute; inset:0; background:var(--green); display:flex; align-items:center; padding-left:24px; opacity:0; transition:opacity .1s; }
+.sw-bg .bg-del  { position:absolute; inset:0; background:var(--red);   display:flex; align-items:center; justify-content:flex-end; padding-right:24px; opacity:0; transition:opacity .1s; }
+.sw-bg .bg-lbl  { color:#fff; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:700; }
+
+/* the card itself sits on top */
+.rcard { background:#1e2430; border-radius:16px; padding:14px 16px; display:flex; align-items:center; gap:12px; will-change:transform; cursor:pointer; position:relative; z-index:1; user-select:none; }
+.rcard .rc-ico { width:44px; height:44px; border-radius:50%; background:#2c3340; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+.rcard .rc-mid { flex:1; min-width:0; }
+.rcard .rc-title { color:#fff; font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rcard .rc-sub   { color:#8b93a3; font-size:11px; margin-top:2px; }
+.rcard .rc-amt   { font-size:16px; font-weight:700; font-family:'IBM Plex Mono',monospace; flex-shrink:0; }
+.rcard .rc-amt.income { color:#3ad29f; } .rcard .rc-amt.expense { color:#ff6b6b; }
+
+/* action buttons inside card */
+.rcard .rc-actions { display:flex; gap:6px; margin-left:8px; flex-shrink:0; }
+.rcard .rc-actions button { width:32px; height:32px; border:none; border-radius:50%; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.rc-btn-save { background:rgba(58,210,159,.2); color:#3ad29f; }
+.rc-btn-edit { background:rgba(255,255,255,.1); color:#ccc; }
+.rc-btn-del  { background:rgba(255,107,107,.2); color:#ff6b6b; }
 .lightbox.show { display:flex; }
 .lightbox img { max-width:90vw; max-height:88vh; border-radius:3px; }
 .lb-close { position:absolute; top:16px; right:20px; background:none; border:none; color:white; font-size:28px; cursor:pointer; }
@@ -463,23 +462,58 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
   <img id="lbImg" src="" alt="slip"/>
 </div>
 
-<!-- Batch review (slider) screen -->
+<!-- Batch review: listing screen -->
 <div class="review-screen" id="reviewScreen">
   <div class="review-head">
-    <span id="reviewProgress">1 / 1</span>
+    <span id="reviewProgress">เหลือ 0 ใบ</span>
     <button class="review-close" onclick="closeReview()">✕ ปิด</button>
   </div>
-  <div class="review-stage" id="reviewStage">
-    <!-- horizontal card injected here -->
-  </div>
-  <div class="slider-zone">
-    <div class="slider-track" id="sliderTrack">
-      <span class="slider-label left">✕ ข้าม</span>
-      <span class="slider-label right">บันทึก ✓</span>
-      <div class="slider-knob" id="sliderKnob">⇆</div>
+  <div class="review-list" id="reviewList"></div>
+</div>
+
+<!-- Edit modal -->
+<div class="modal" id="editModal">
+  <div class="modal-card" style="max-width:480px">
+    <div class="modal-head">
+      <span class="modal-title">แก้ไขรายละเอียด</span>
+      <button class="modal-x" onclick="closeEditModal()">✕</button>
     </div>
-    <div class="slider-hint">เลื่อนขวา = บันทึก · เลื่อนซ้าย = ข้าม</div>
-    <button class="rv-edit-btn" onclick="reviewEdit()">✎ แก้ไขใบนี้ในฟอร์ม</button>
+    <div class="modal-body">
+      <div class="slip-line"><span class="sll">ประเภท</span>
+        <select id="eType"><option value="expense">รายจ่าย</option><option value="income">รายรับ</option></select>
+      </div>
+      <div class="slip-line"><span class="sll">จำนวน</span>
+        <input type="number" id="eAmt" step="0.01" placeholder="0.00"/>
+      </div>
+      <div class="slip-line"><span class="sll">วันที่</span>
+        <input type="date" id="eDate"/>
+      </div>
+      <div class="slip-line"><span class="sll">รายการ</span>
+        <input type="text" id="eDesc" placeholder="ชื่อร้าน/รายการ"/>
+      </div>
+      <div class="slip-line"><span class="sll">หมวดหมู่</span>
+        <select id="eCat">
+          <option value="">-- เลือกหมวด --</option>
+          <optgroup label="รายรับ"><option>เงินเดือน</option><option>รายได้อื่นๆ</option></optgroup>
+          <optgroup label="รายจ่าย">
+            <option>อาหาร & เครื่องดื่ม</option><option>ของชำ / ซุปเปอร์มาร์เก็ต</option>
+            <option>การเดินทาง</option><option>ค่าสาธารณูปโภค</option><option>สุขภาพ / ยา</option>
+            <option>ช้อปปิ้ง</option><option>บันเทิง</option><option>เติมเงิน / E-Wallet</option>
+            <option>ค่าเช่า / ที่พัก</option><option>การศึกษา</option><option>รายจ่ายอื่นๆ</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="slip-line"><span class="sll">เลขอ้างอิง</span>
+        <input type="text" id="eRef" placeholder="เลขที่รายการ"/>
+      </div>
+      <div class="slip-line"><span class="sll">หมายเหตุ</span>
+        <input type="text" id="eNote" placeholder="หมายเหตุ"/>
+      </div>
+      <div class="modal-actions" style="margin-top:14px">
+        <button class="data-btn" onclick="closeEditModal()">ยกเลิก</button>
+        <button class="btn-post" style="padding:9px 18px" onclick="saveEditModal()">บันทึกการแก้ไข</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -650,8 +684,7 @@ btnScan.onclick=async e=>{
 };
 
 // ════════ Batch: หลายสลิป + ปัดยืนยัน ════════
-let reviewQueue=[];   // [{found, thumb, dataUrl}]
-let reviewIdx=0;
+let reviewQueue=[];   // [{id, found, thumb, dataUrl}]
 
 let batchFiles=[];   // accumulated File objects waiting to be scanned
 
@@ -676,7 +709,6 @@ function renderBatchTray(){
   tray.style.display='block';
   document.getElementById('batchTrayCount').textContent=`เลือกแล้ว ${batchFiles.length} รูป`;
   document.getElementById('batchStart').textContent=`🔍 เริ่มสแกน (${batchFiles.length})`;
-  // render thumbnails
   thumbs.innerHTML='';
   batchFiles.forEach((f,i)=>{
     const div=document.createElement('div'); div.className='bt-item';
@@ -715,7 +747,7 @@ function makeThumbFrom(imgEl){
 
 async function runBatch(files){
   if(typeof Tesseract==='undefined'){ toast('OCR ยังโหลดไม่เสร็จ ลองใหม่','err'); return; }
-  reviewQueue=[]; reviewIdx=0;
+  reviewQueue=[];
   scanOverlay.classList.add('show'); imgZone.classList.add('has-img');
   imgHolder.style.display='none';
   let i=0;
@@ -728,11 +760,9 @@ async function runBatch(files){
       let text='';
       try{ const res=await Tesseract.recognize(ocrCanvasFrom(img),'tha+eng',{ logger:m=>{ if(m.status==='recognizing text') scanBar.style.width=Math.round(m.progress*100)+'%'; } }); text=res?.data?.text||''; }catch{}
       const found=parseSlipText(text);
-      // QR reference
       if(qr){ const rm=qr.match(/(?:ref|transRef|billerID)[=:]?\s*([A-Za-z0-9]{6,})/i)||qr.match(/[?&]ref=([A-Za-z0-9]{6,})/i)||qr.match(/\b([A-Za-z0-9]{12,})\b/); if(rm && !found.ref) found.ref=rm[1]; }
-      // category
       const c=classifyCategory(found); if(c) found.category=c.cat;
-      reviewQueue.push({ found, thumb:makeThumbFrom(img), dataUrl });
+      reviewQueue.push({ id:'rq'+Date.now()+Math.random(), found, thumb:makeThumbFrom(img), dataUrl });
     }catch{}
   }
   scanOverlay.classList.remove('show'); resetImage();
@@ -740,9 +770,7 @@ async function runBatch(files){
   openReview();
 }
 
-function openReview(){ reviewIdx=0; document.getElementById('reviewScreen').classList.add('show'); showReviewCard(); }
-function closeReview(){ document.getElementById('reviewScreen').classList.remove('show'); document.getElementById('reviewStage').innerHTML=''; }
-
+// ════════ Review: listing + swipe per row ════════
 function catIcon(cat){
   const c=cat||'';
   if(/อาหาร|เครื่องดื่ม/.test(c)) return '🍔';
@@ -758,97 +786,122 @@ function catIcon(cat){
   return '🧾';
 }
 
-function showReviewCard(){
-  const stage=document.getElementById('reviewStage');
-  stage.innerHTML='';
-  document.getElementById('reviewProgress').textContent=`${Math.min(reviewIdx+1,reviewQueue.length)} / ${reviewQueue.length}`;
-  if(reviewIdx>=reviewQueue.length){ finishReview(); return; }
-  const item=reviewQueue[reviewIdx];
+function openReview(){
+  document.getElementById('reviewScreen').classList.add('show');
+  renderReviewList();
+}
+function closeReview(){
+  document.getElementById('reviewScreen').classList.remove('show');
+  document.getElementById('reviewList').innerHTML='';
+}
+function updateReviewProgress(){
+  document.getElementById('reviewProgress').textContent=`เหลือ ${reviewQueue.length} ใบ`;
+}
+
+function renderReviewList(){
+  updateReviewProgress();
+  const list=document.getElementById('reviewList');
+  list.innerHTML='';
+  if(!reviewQueue.length){ finishReview(); return; }
+  reviewQueue.forEach(item=>{ list.appendChild(buildReviewRow(item)); });
+}
+
+function buildReviewRow(item){
   const f=item.found;
-  const typeTh=f.type==='income'?'รายรับ':'รายจ่าย';
   const sym=f.currency||'฿';
   const amtCls=f.type==='income'?'income':'expense';
-  const amtTxt=`${f.type==='income'?'+':'−'}${sym}${(f.amount||0).toLocaleString('th-TH',{minimumFractionDigits:2})}`;
+  const amtSign=f.type==='income'?'+':'−';
+  const amtTxt=`${amtSign}${sym}${(f.amount||0).toLocaleString('th-TH',{minimumFractionDigits:2})}`;
+  const sub=`${esc(f.category||'')}${f.category&&f.date?' · ':''}${esc(f.date||'')}`;
 
-  // horizontal summary card (like the example image)
+  // wrapper (for swipe bg reveal)
+  const wrap=document.createElement('div'); wrap.className='sw-wrap'; wrap.dataset.id=item.id;
+
+  // background hint
+  wrap.innerHTML=`<div class="sw-bg">
+    <div class="bg-save"><span class="bg-lbl">✓ บันทึก</span></div>
+    <div class="bg-del"><span class="bg-lbl">✕ ลบ</span></div>
+  </div>`;
+
+  // card
   const card=document.createElement('div'); card.className='rcard';
   card.innerHTML=`
     <div class="rc-ico">${catIcon(f.category)}</div>
     <div class="rc-mid">
       <div class="rc-title">${esc(f.desc||'(ไม่มีรายการ)')}</div>
-      <div class="rc-sub">${esc(f.category||typeTh)} · ${esc(f.date||'')}</div>
+      <div class="rc-sub">${sub}</div>
     </div>
-    <div class="rc-amt ${amtCls}">${amtTxt}</div>`;
-  stage.appendChild(card);
+    <div class="rc-amt ${amtCls}">${amtTxt}</div>
+    <div class="rc-actions">
+      <button class="rc-btn-save" title="บันทึก">✓</button>
+      <button class="rc-btn-edit" title="แก้ไข">✎</button>
+      <button class="rc-btn-del"  title="ลบ">✕</button>
+    </div>`;
+  wrap.appendChild(card);
 
-  // slip image
-  if(item.thumb){ const im=document.createElement('img'); im.className='rcard-img'; im.src=item.thumb; stage.appendChild(im); }
+  // button actions
+  card.querySelector('.rc-btn-save').onclick=e=>{ e.stopPropagation(); dismissRow(item.id,'save'); };
+  card.querySelector('.rc-btn-del').onclick =e=>{ e.stopPropagation(); dismissRow(item.id,'del'); };
+  card.querySelector('.rc-btn-edit').onclick=e=>{ e.stopPropagation(); openEditModal(item.id); };
 
-  // detail box
-  const det=document.createElement('div'); det.className='rcard-detail';
-  det.innerHTML=`
-    <div class="rd-row"><span class="k">ประเภท</span><span class="v">${typeTh}</span></div>
-    <div class="rd-row"><span class="k">วันที่</span><span class="v">${esc(f.date||'-')}</span></div>
-    <div class="rd-row"><span class="k">หมวด</span><span class="v">${esc(f.category||'-')}</span></div>
-    <div class="rd-row"><span class="k">เลขอ้างอิง</span><span class="v">${esc(f.ref||'-')}</span></div>
-    ${f.note?`<div class="rd-row"><span class="k">หมายเหตุ</span><span class="v">${esc(f.note)}</span></div>`:''}`;
-  stage.appendChild(det);
+  // tap to edit (only if not a swipe)
+  attachRowSwipe(card, wrap,
+    ()=> dismissRow(item.id,'save'),  // swipe right → save
+    ()=> dismissRow(item.id,'del'),   // swipe left  → del
+    ()=> openEditModal(item.id)       // tap         → edit
+  );
 
-  resetSlider();
+  return wrap;
 }
 
-// ── Big slider: drag right = save, left = skip ──
-function resetSlider(){
-  const knob=document.getElementById('sliderKnob');
-  const track=document.getElementById('sliderTrack');
-  knob.style.transition='none'; knob.style.left='4px';
-  setupSlider(knob,track);
-}
-let _sliderBound=false;
-function setupSlider(knob,track){
-  if(_sliderBound) return; _sliderBound=true;
-  let dragging=false, startX=0, startLeft=4, maxLeft=0;
-  const calcMax=()=> track.clientWidth - knob.clientWidth - 8;
-  const onDown=x=>{ dragging=true; startX=x; startLeft=parseFloat(knob.style.left)||4; maxLeft=calcMax(); knob.style.transition='none'; };
-  const onMove=x=>{ if(!dragging)return; let nl=startLeft+(x-startX); nl=Math.max(4,Math.min(maxLeft,nl)); knob.style.left=nl+'px';
-    // tint by direction
-    const pct=nl/maxLeft;
-    knob.textContent = pct>0.7?'✓' : pct<0.15?'✕' : '⇆'; };
-  const onUp=()=>{ if(!dragging)return; dragging=false; maxLeft=calcMax(); const nl=parseFloat(knob.style.left)||4; const pct=nl/maxLeft;
-    knob.style.transition='left .2s ease';
-    if(pct>0.72){ knob.style.left=maxLeft+'px'; setTimeout(()=>{ reviewDecide('save'); },150); }
-    else if(pct<0.12){ knob.style.left='4px'; setTimeout(()=>{ reviewDecide('skip'); },150); }
-    else { knob.style.left='4px'; knob.textContent='⇆'; } };
-  knob.addEventListener('touchstart',e=>{onDown(e.touches[0].clientX);},{passive:true});
-  window.addEventListener('touchmove',e=>{ if(dragging){ onMove(e.touches[0].clientX); } },{passive:true});
-  window.addEventListener('touchend',onUp);
-  knob.addEventListener('mousedown',e=>{e.preventDefault();onDown(e.clientX);});
-  window.addEventListener('mousemove',e=>{ if(dragging) onMove(e.clientX); });
-  window.addEventListener('mouseup',onUp);
+function attachRowSwipe(card, wrap, onSave, onDel, onTap){
+  let startX=0, startY=0, curX=0, dragging=false, moved=false;
+  const bgSave=wrap.querySelector('.bg-save');
+  const bgDel =wrap.querySelector('.bg-del');
+  const TH=100;
+
+  const down=x=>{ startX=x; dragging=true; moved=false; card.style.transition='none'; };
+  const move=(x,y)=>{
+    if(!dragging) return;
+    curX=x-startX;
+    if(Math.abs(curX)>8) moved=true;
+    card.style.transform=`translateX(${curX}px)`;
+    const o=Math.min(1,Math.abs(curX)/TH);
+    if(curX>0){ bgSave.style.opacity=o; bgDel.style.opacity=0; }
+    else       { bgDel.style.opacity=o; bgSave.style.opacity=0; }
+  };
+  const up=()=>{
+    if(!dragging) return; dragging=false;
+    if(!moved){ card.style.transform=''; bgSave.style.opacity=0; bgDel.style.opacity=0; onTap(); return; }
+    card.style.transition='transform .2s ease, opacity .2s ease';
+    if(curX>TH)       { card.style.transform=`translateX(110%)`; card.style.opacity='0'; setTimeout(()=>onSave(),200); }
+    else if(curX<-TH) { card.style.transform=`translateX(-110%)`; card.style.opacity='0'; setTimeout(()=>onDel(),200); }
+    else              { card.style.transform=''; bgSave.style.opacity=0; bgDel.style.opacity=0; }
+    curX=0;
+  };
+
+  card.addEventListener('touchstart',e=>{ const t=e.touches[0]; startX=t.clientX; startY=t.clientY; down(t.clientX); },{passive:true});
+  card.addEventListener('touchmove', e=>{ const t=e.touches[0]; if(Math.abs(t.clientX-startX)>Math.abs(t.clientY-startY)) move(t.clientX,t.clientY); },{passive:true});
+  card.addEventListener('touchend',  up);
+  card.addEventListener('mousedown', e=>down(e.clientX));
+  window.addEventListener('mousemove',e=>{ if(dragging) move(e.clientX,e.clientY); });
+  window.addEventListener('mouseup',  ()=>{ if(dragging) up(); });
 }
 
-function reviewDecide(action){
-  const item=reviewQueue[reviewIdx];
-  if(!item){ return; }
-  if(action==='save'){ saveFromReview(item.found, item.thumb); }
-  reviewIdx++;
-  setTimeout(showReviewCard, 180);
-}
-
-function reviewEdit(){
-  // load current card into the main form for manual edit, pause review
-  const item=reviewQueue[reviewIdx]; if(!item) return;
-  closeReview();
-  applyParsed(item.found);
-  if(item.dataUrl){ slipThumb=item.thumb; const im=new Image(); im.onload=()=>{slipImgEl=im;}; im.src=item.dataUrl;
-    slipPrev.src=item.dataUrl; slipPrev.classList.add('show'); imgHolder.style.display='none'; imgZone.classList.add('has-img'); }
-  // remove this item so it isn't double-counted
-  reviewQueue.splice(reviewIdx,1);
-  toast('แก้ไขในฟอร์มแล้วกดบันทึกเองได้เลย','ok');
+function dismissRow(id, action){
+  const idx=reviewQueue.findIndex(x=>x.id===id); if(idx<0) return;
+  const item=reviewQueue[idx];
+  if(action==='save') saveFromReview(item.found, item.thumb);
+  reviewQueue.splice(idx,1);
+  // remove the DOM row
+  const el=document.querySelector(`.sw-wrap[data-id="${id}"]`);
+  if(el) el.remove();
+  updateReviewProgress();
+  if(!reviewQueue.length) finishReview();
 }
 
 function saveFromReview(f, thumb){
-  if(!f.amount || f.amount<=0){ return; } // skip invalid
+  if(!f.amount || f.amount<=0) return;
   const entry={ id:Date.now()+Math.floor(Math.random()*1000), type:f.type||'expense',
     desc:f.desc||'(ไม่มีรายการ)', amount:f.amount, date:f.date||new Date().toISOString().split('T')[0],
     currency:f.currency||'฿', category:f.category||'', method:'โอนเงิน (Internet Banking)',
@@ -856,17 +909,50 @@ function saveFromReview(f, thumb){
   entries.unshift(entry);
   rememberCategory(entry);
   save();
-  // auto-send if configured + enabled
   if(getSheetUrl() && autoSendOn()){ entry.synced=true; sendToSheet([sheetRow(entry)]).catch(()=>{ entry.synced=false; save(); }); }
 }
 
 function finishReview(){
-  const saved=reviewQueue.length; // not exact, but indicates done
-  closeReview();
-  render();
+  closeReview(); render();
   window.scrollTo({top:0,behavior:'smooth'});
-  toast('จบการตรวจสลิปทั้งหมด ✓','ok');
+  toast('บันทึกสลิปเสร็จสิ้น ✓','ok');
 }
+
+// ════════ Edit modal ════════
+let _editId=null;
+function openEditModal(id){
+  const item=reviewQueue.find(x=>x.id===id); if(!item) return;
+  _editId=id;
+  const f=item.found;
+  document.getElementById('eType').value=f.type||'expense';
+  document.getElementById('eAmt').value=f.amount||'';
+  document.getElementById('eDate').value=f.date||'';
+  document.getElementById('eDesc').value=f.desc||'';
+  document.getElementById('eCat').value=f.category||'';
+  document.getElementById('eRef').value=f.ref||'';
+  document.getElementById('eNote').value=f.note||'';
+  document.getElementById('editModal').classList.add('show');
+}
+function closeEditModal(){ document.getElementById('editModal').classList.remove('show'); _editId=null; }
+function saveEditModal(){
+  if(!_editId) return;
+  const item=reviewQueue.find(x=>x.id===_editId); if(!item) return;
+  item.found.type=document.getElementById('eType').value;
+  item.found.amount=parseFloat(document.getElementById('eAmt').value)||0;
+  item.found.date=document.getElementById('eDate').value;
+  item.found.desc=document.getElementById('eDesc').value;
+  item.found.category=document.getElementById('eCat').value;
+  item.found.ref=document.getElementById('eRef').value;
+  item.found.note=document.getElementById('eNote').value;
+  closeEditModal();
+  // update the row in listing without full re-render
+  const wrap=document.querySelector(`.sw-wrap[data-id="${_editId}"]`);
+  if(wrap){ const fresh=buildReviewRow(item); wrap.replaceWith(fresh); }
+  else renderReviewList();
+  toast('แก้ไขแล้ว — ปัดขวาเพื่อบันทึก ✓','ok');
+}
+document.getElementById('editModal').addEventListener('click',e=>{ if(e.target.id==='editModal') closeEditModal(); });
+
 
 
 // ── Parse OCR text (note is NOT auto-filled) ──
