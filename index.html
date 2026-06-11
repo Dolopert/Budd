@@ -867,7 +867,7 @@ function saveFromReview(f, thumb){
   const entry={ id:Date.now()+Math.floor(Math.random()*1000), type:f.type||'expense',
     desc:f.desc||'(ไม่มีรายการ)', amount:f.amount, date:f.date||new Date().toISOString().split('T')[0],
     currency:f.currency||'฿', category:f.category||'', method:'โอนเงิน (Internet Banking)',
-    ref:f.ref||'', note:f.note||'' };
+    ref:f.ref||'', note:f.note||'', thumb:thumb||null };
   entries.unshift(entry);
   rememberCategory(entry);
   save();
@@ -1308,7 +1308,7 @@ function postEntry(){
   const entry={ id:Date.now(), type:curType, desc, amount:amt, date,
     currency:document.getElementById('fCur').value, category:document.getElementById('fCat').value,
     method:document.getElementById('fMethod').value, ref:document.getElementById('fRef').value.trim(),
-    note:document.getElementById('fNote').value.trim() };
+    note:document.getElementById('fNote').value.trim(), thumb:slipThumb||null };
 
   entries.unshift(entry);
   rememberCategory(entry);
@@ -1379,7 +1379,8 @@ function openEntryDetail(id){
     ['เลขอ้างอิง', e.ref||'-'],
     ['หมายเหตุ', e.note||'-'],
   ];
-  document.getElementById('iosRows').innerHTML=rows.filter(r=>r[1]!=='-'||r[0]==='วันที่')
+  const slipImg=e.thumb?`<img src="${e.thumb}" style="width:100%;border-radius:12px;margin-bottom:12px;object-fit:contain;max-height:200px;background:#f2f2f7"/>`:'' ;
+  document.getElementById('iosRows').innerHTML=slipImg+rows.filter(r=>r[1]!=='-'||r[0]==='วันที่')
     .map(([k,v])=>`<div class="ios-row"><span class="ir-k">${esc(k)}</span><span class="ir-v">${esc(v)}</span></div>`).join('');
   const syncEl=document.getElementById('iosSync');
   if(getSheetUrl()) syncEl.innerHTML=e.synced?'<span style="color:var(--green)">☁ ส่ง Sheet แล้ว</span>':'<span style="color:var(--muted)">↑ ยังไม่ส่ง Sheet</span>';
