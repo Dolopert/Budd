@@ -3,7 +3,6 @@ const CACHE = 'finance-slip-v6';
 const SHELL = [
   './',
   'index.html',
-  'finance-slip.html',
   'styles.css',
   'manifest.webmanifest',
   'icon-180.png',
