@@ -14,6 +14,7 @@ Both versions share the same behaviour and constants.
 - Walks along the bottom of the screen, above all apps (window level 25)
 - True per-pixel transparency — no background box
 - **Left click** → sits for 3 seconds, then walks again
+- Sits down on its own every 8–20 seconds while wandering
 - **Drag** → move the cat anywhere on screen
 - **Right click** → menu with *Quit Pixel Pet*
 - Speech bubbles above the cat
@@ -39,9 +40,19 @@ chmod +x run.sh build.sh install_autostart.sh
 ./install_autostart.sh --uninstall
 ```
 
-## Windows
+## Windows — easiest (any PC, one click)
+Copy this whole folder to the other computer, then **double-click
+`INSTALL-AND-RUN.bat`**. With no manual steps it:
+1. Finds Python — or downloads & installs Python 3.11 if it's missing
+2. Creates the `.venv` and downloads the libraries (PySide6, Pillow)
+3. Starts the cat
+
+Run it again any time to just launch (setup is skipped once done).
+
+## Windows — manual
 ```bat
-run.bat                             :: auto-setup .venv + run
+INSTALL-AND-RUN.bat                 :: one-click: installs Python if needed, then runs
+run.bat                             :: auto-setup .venv + run (assumes Python already installed)
 build.bat                           :: → dist\PixelPet.exe (PyInstaller)
 install_autostart.bat              :: auto-run at login (per-user)
 install_autostart.bat uninstall
