@@ -514,6 +514,7 @@ async function runBatch(files){
   reviewQueue=[];
   scanOverlay.classList.add('show'); imgZone.classList.add('has-img');
   imgHolder.style.display='none';
+  imgZone.style.minHeight='180px';  // batch มีรูป preview จึงต้องตั้งความสูงเอง ไม่งั้น overlay ยุบ
 
   const batchWrap=document.getElementById('batchProgressWrap');
   const batchBar=document.getElementById('batchBar');
@@ -535,7 +536,11 @@ async function runBatch(files){
       const qr=qrDecode(img);
       let text='';
       try{ const res=await Tesseract.recognize(makeOcrCanvas(img),'tha+eng',{ logger:m=>{
-        if(m.status==='recognizing text'){ scanBar.style.width=Math.round(m.progress*100)+'%'; ocrLabel.textContent='OCR '+Math.round(m.progress*100)+'%'; }
+        if(m.status==='recognizing text'){
+          scanBar.style.width=Math.round(m.progress*100)+'%'; ocrLabel.textContent='OCR '+Math.round(m.progress*100)+'%';
+          // overall bar = สลิปที่เสร็จแล้ว + ความคืบหน้าสลิปปัจจุบัน → เลื่อนลื่น
+          batchBar.style.width=Math.round((((i-1)+m.progress)/files.length)*100)+'%';
+        }
       }}); text=res?.data?.text||''; }catch{}
       const found=parseSlipText(text);
       if(qr){ const rm=qr.match(/(?:ref|transRef|billerID)[=:]?\s*([A-Za-z0-9]{6,})/i)||qr.match(/[?&]ref=([A-Za-z0-9]{6,})/i)||qr.match(/\b([A-Za-z0-9]{12,})\b/); if(rm && !found.ref) found.ref=rm[1]; }
@@ -549,7 +554,7 @@ async function runBatch(files){
     }catch{}
   }
   batchBar.style.width='100%'; batchLabel.textContent=`${files.length} / ${files.length}`;
-  setTimeout(()=>{ scanOverlay.classList.remove('show'); batchWrap.style.display='none'; resetImage();
+  setTimeout(()=>{ scanOverlay.classList.remove('show'); batchWrap.style.display='none'; imgZone.style.minHeight=''; resetImage();
     if(!reviewQueue.length){ toast('อ่านสลิปไม่สำเร็จ','err'); return; }
     openReview();
   }, 400);
@@ -628,7 +633,7 @@ function attachRowSwipe(card, wrap, onSave, onDel, onTap){
   let startX=0, startY=0, curX=0, dragging=false, moved=false;
   const bgSave=wrap.querySelector('.bg-save');
   const bgDel =wrap.querySelector('.bg-del');
-  const TH=100;
+  const TH=70;
 
   const down=x=>{ startX=x; dragging=true; moved=false; card.style.transition='none'; };
   const move=(x,y)=>{
@@ -651,7 +656,11 @@ function attachRowSwipe(card, wrap, onSave, onDel, onTap){
   };
 
   card.addEventListener('touchstart',e=>{ const t=e.touches[0]; startX=t.clientX; startY=t.clientY; down(t.clientX); },{passive:true});
-  card.addEventListener('touchmove', e=>{ const t=e.touches[0]; if(Math.abs(t.clientX-startX)>Math.abs(t.clientY-startY)) move(t.clientX,t.clientY); },{passive:true});
+  card.addEventListener('touchmove', e=>{
+    const t=e.touches[0]; const dx=t.clientX-startX, dy=t.clientY-startY;
+    if(Math.abs(dx)>6 || Math.abs(dy)>6) moved=true;   // ขยับจริง = ไม่ใช่ tap (กันเปิด edit ผิด)
+    if(Math.abs(dx)>Math.abs(dy)) move(t.clientX,t.clientY);
+  },{passive:true});
   card.addEventListener('touchend',  up);
   card.addEventListener('mousedown', e=>down(e.clientX));
   window.addEventListener('mousemove',e=>{ if(dragging) move(e.clientX,e.clientY); });
