@@ -250,7 +250,8 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 .ios-dots { display:flex; justify-content:center; gap:8px; margin-bottom:14px; }
 .ios-dot { width:7px; height:7px; border-radius:50%; background:#d1d1d6; transition:background .2s,transform .2s; cursor:pointer; }
 .ios-dot.on { background:#007AFF; transform:scale(1.25); }
-.ios-pages { display:flex; margin:0 -22px; overflow:hidden; transition:transform .32s cubic-bezier(.32,1,.23,1); }
+.ios-viewport { margin:0 -22px; overflow:hidden; }
+.ios-pages { display:flex; transition:transform .32s cubic-bezier(.32,1,.23,1); }
 .ios-page { flex:0 0 100%; padding:0 22px 4px; min-width:0; }
 .ios-slip-hint { text-align:center; font-size:11px; color:#c7c7cc; font-family:'IBM Plex Mono',monospace; letter-spacing:.04em; margin-bottom:6px; }
 .rc-dup { font-family:'IBM Plex Mono',monospace; font-size:9px; font-weight:700; background:#E0B341; color:#fff; border-radius:6px; padding:2px 7px; letter-spacing:.06em; margin-top:4px; display:inline-block; }
@@ -545,6 +546,7 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
     <span class="ios-dot on" onclick="setPopupPage(0)"></span>
     <span class="ios-dot" onclick="setPopupPage(1)"></span>
   </div>
+  <div class="ios-viewport">
   <div class="ios-pages" id="iosPages">
     <!-- Page 1: details -->
     <div class="ios-page">
@@ -563,6 +565,7 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
       <img id="iosSlipImg" style="width:100%;border-radius:14px;object-fit:contain;max-height:62vh;background:#f2f2f7;display:none"/>
       <p id="iosNoSlip" style="color:#8e8e93;font-size:14px;display:none">ไม่มีรูปสลิป</p>
     </div>
+  </div>
   </div>
 </div>
 
