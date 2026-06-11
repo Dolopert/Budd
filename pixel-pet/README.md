@@ -1,8 +1,14 @@
 # Pixel Pet 🐱
 
-A pixel-art cat desktop companion for **macOS**, built with Python 3.11 +
-PyObjC/Cocoa + Pillow. It walks across the bottom of your screen on top of all
-windows with true per-pixel transparency.
+A pixel-art cat desktop companion that walks across the bottom of your screen
+on top of all windows with true per-pixel transparency.
+
+| Platform | Entry point | Stack |
+|----------|-------------|-------|
+| **macOS** | `pet.py` | Python 3.11 + PyObjC/Cocoa + Pillow |
+| **Windows** | `pet_win.py` | Python 3.11 + PySide6 (Qt) + Pillow |
+
+Both versions share the same behaviour and constants.
 
 ## Features
 - Walks along the bottom of the screen, above all apps (window level 25)
@@ -24,24 +30,22 @@ sprite_sheet/walk_sprite.png
 sprite_sheet/sit_sprite.png
 ```
 
-## Run (auto-setup venv + run)
+## macOS
 ```bash
-chmod +x run.sh
-./run.sh
+chmod +x run.sh build.sh install_autostart.sh
+./run.sh                            # auto-setup venv + run
+./build.sh                          # → dist/Pixel Pet.app
+./install_autostart.sh             # auto-run at login
+./install_autostart.sh --uninstall
 ```
 
-## Build a standalone .app
-```bash
-chmod +x build.sh
-./build.sh
-# → dist/Pixel Pet.app
+## Windows
+```bat
+run.bat                             :: auto-setup .venv + run
+build.bat                           :: → dist\PixelPet.exe (PyInstaller)
+install_autostart.bat              :: auto-run at login (per-user)
+install_autostart.bat uninstall
 ```
 
-## Auto-run at login
-```bash
-chmod +x install_autostart.sh
-./install_autostart.sh             # install
-./install_autostart.sh --uninstall # remove
-```
-
-> **Note:** PyObjC/Cocoa is macOS-only. These files won't run on Windows/Linux.
+> PyObjC/Cocoa is macOS-only; PySide6 is cross-platform. Use the entry point
+> for your OS.
