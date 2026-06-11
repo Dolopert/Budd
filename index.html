@@ -922,7 +922,12 @@ function saveFromReview(f, thumb){
     ref:f.ref||'', note:f.note||'', thumb:thumb||null };
   entries.unshift(entry);
   rememberCategory(entry);
-  save();
+  if(!save()){
+    // localStorage full — retry without thumbnail to at least save the data
+    entry.thumb=null;
+    if(!save()){ entries.shift(); toast('พื้นที่เก็บข้อมูลเต็ม — บันทึกไม่ได้','err'); return; }
+    toast('บันทึกแล้ว (ไม่มีรูป — พื้นที่เต็ม)','ok');
+  }
   if(getSheetUrl() && autoSendOn()){ entry.synced=true; sendToSheet([sheetRow(entry)]).catch(()=>{ entry.synced=false; save(); }); }
 }
 
