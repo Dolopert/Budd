@@ -784,7 +784,7 @@ async function runBatch(files){
       if(qr){ const rm=qr.match(/(?:ref|transRef|billerID)[=:]?\s*([A-Za-z0-9]{6,})/i)||qr.match(/[?&]ref=([A-Za-z0-9]{6,})/i)||qr.match(/\b([A-Za-z0-9]{12,})\b/); if(rm && !found.ref) found.ref=rm[1]; }
       const c=classifyCategory(found); if(c) found.category=c.cat;
       // duplicate check: same date + amount already in saved entries or earlier in this batch
-      const isDup = (found.amount>0) && (
+      const isDup = !!(found.amount>0 && found.date) && (
         entries.some(e=>e.date===found.date && Math.abs(e.amount-found.amount)<0.01) ||
         reviewQueue.some(q=>q.found.date===found.date && Math.abs((q.found.amount||0)-found.amount)<0.01)
       );
@@ -1451,7 +1451,7 @@ function openEntryDetail(id){
   const slipImg=document.getElementById('iosSlipImg');
   const noSlip=document.getElementById('iosNoSlip');
   if(e.thumb){ slipImg.src=e.thumb; slipImg.style.display='block'; noSlip.style.display='none'; }
-  else { slipImg.src=''; slipImg.style.display='none'; noSlip.style.display='block'; }
+  else { slipImg.src=''; slipImg.style.display='none'; noSlip.style.display='none'; }
 
   // dots + hint only when slip exists
   const hasDots=!!e.thumb;
@@ -1471,7 +1471,8 @@ function closeEntryDetail(){
   document.getElementById('iosOverlay').classList.remove('show');
   document.getElementById('iosPopup').classList.remove('show');
   _detailEntryId=null;
-  setPopupPage(0);
+  // reset page after popup finishes sliding out (350ms) so no snap-back flicker
+  setTimeout(()=>{ document.getElementById('iosPages').style.transition='none'; setPopupPage(0); },350);
 }
 
 // live finger-tracking swipe for detail popup pages
@@ -1509,7 +1510,7 @@ function closeEntryDetail(){
     if(!tracking) return; tracking=false;
     if(!engaged) return;
     pages.style.transition='transform .35s cubic-bezier(.32,1,.23,1)';
-    const dx=(e.changedTouches?e.changedTouches[0].clientX:sx)-sx;
+    const dx=((e.changedTouches&&e.changedTouches.length)?e.changedTouches[0].clientX:sx)-sx;
     if(dx<-50 && _popupPage===0) setPopupPage(1);
     else if(dx>50 && _popupPage===1) setPopupPage(0);
     else setPopupPage(_popupPage);
