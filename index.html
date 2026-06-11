@@ -247,6 +247,12 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 .ios-btns { display:flex; flex-direction:column; gap:10px; }
 .ios-btn-edit { padding:15px; border-radius:14px; background:#007AFF; border:none; color:#fff; font-size:16px; font-weight:600; cursor:pointer; }
 .ios-btn-del  { padding:15px; border-radius:14px; background:#fff; border:1.5px solid #FF3B30; color:#FF3B30; font-size:16px; font-weight:600; cursor:pointer; }
+.ios-dots { display:flex; justify-content:center; gap:8px; margin-bottom:14px; }
+.ios-dot { width:7px; height:7px; border-radius:50%; background:#d1d1d6; transition:background .2s,transform .2s; cursor:pointer; }
+.ios-dot.on { background:#007AFF; transform:scale(1.25); }
+.ios-pages { display:flex; margin:0 -22px; overflow:hidden; transition:transform .32s cubic-bezier(.32,1,.23,1); }
+.ios-page { flex:0 0 100%; padding:0 22px 4px; min-width:0; }
+.ios-slip-hint { text-align:center; font-size:11px; color:#c7c7cc; font-family:'IBM Plex Mono',monospace; letter-spacing:.04em; margin-bottom:6px; }
 @keyframes iofade { from{opacity:0} to{opacity:1} }
 
 .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--ink); color:white; font-family:'IBM Plex Mono',monospace; font-size:11px; padding:10px 20px; border-radius:2px; transition:transform .22s; pointer-events:none; z-index:99; white-space:nowrap; }
@@ -534,13 +540,28 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 <div class="ios-overlay" id="iosOverlay" onclick="closeEntryDetail()"></div>
 <div class="ios-popup" id="iosPopup">
   <button class="ios-close" onclick="closeEntryDetail()">✕</button>
-  <div class="ios-amt" id="iosAmt"></div>
-  <div class="ios-desc" id="iosDesc"></div>
-  <div class="ios-rows" id="iosRows"></div>
-  <div class="ios-sync" id="iosSync"></div>
-  <div class="ios-btns">
-    <button class="ios-btn-edit" id="iosBtnEdit">✎ แก้ไข</button>
-    <button class="ios-btn-del"  id="iosBtnDel">🗑 ลบ</button>
+  <div class="ios-dots" id="iosDots" style="display:none">
+    <span class="ios-dot on" onclick="setPopupPage(0)"></span>
+    <span class="ios-dot" onclick="setPopupPage(1)"></span>
+  </div>
+  <div class="ios-pages" id="iosPages">
+    <!-- Page 1: details -->
+    <div class="ios-page">
+      <div class="ios-amt" id="iosAmt"></div>
+      <div class="ios-desc" id="iosDesc"></div>
+      <div class="ios-slip-hint" id="iosSlipHint" style="display:none">← ปัดซ้ายเพื่อดูสลิป →</div>
+      <div class="ios-rows" id="iosRows"></div>
+      <div class="ios-sync" id="iosSync"></div>
+      <div class="ios-btns">
+        <button class="ios-btn-edit" id="iosBtnEdit">✎ แก้ไข</button>
+        <button class="ios-btn-del"  id="iosBtnDel">🗑 ลบ</button>
+      </div>
+    </div>
+    <!-- Page 2: slip image -->
+    <div class="ios-page" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260px;padding-bottom:20px">
+      <img id="iosSlipImg" style="width:100%;border-radius:14px;object-fit:contain;max-height:62vh;background:#f2f2f7;display:none"/>
+      <p id="iosNoSlip" style="color:#8e8e93;font-size:14px;display:none">ไม่มีรูปสลิป</p>
+    </div>
   </div>
 </div>
 
@@ -1386,6 +1407,13 @@ function deleteEntry(id, skipConfirm=false){
 // ════════ iOS-style entry detail popup ════════
 let _detailEntryId=null;
 
+let _popupPage=0;
+function setPopupPage(n){
+  _popupPage=n;
+  document.getElementById('iosPages').style.transform=`translateX(${-n*100}%)`;
+  document.querySelectorAll('#iosDots .ios-dot').forEach((d,i)=>d.classList.toggle('on',i===n));
+}
+
 function openEntryDetail(id){
   const e=entries.find(x=>x.id===id); if(!e) return;
   _detailEntryId=id;
@@ -1402,14 +1430,26 @@ function openEntryDetail(id){
     ['เลขอ้างอิง', e.ref||'-'],
     ['หมายเหตุ', e.note||'-'],
   ];
-  const slipImg=e.thumb?`<img src="${e.thumb}" style="width:100%;border-radius:12px;margin-bottom:12px;object-fit:contain;max-height:200px;background:#f2f2f7"/>`:'' ;
-  document.getElementById('iosRows').innerHTML=slipImg+rows.filter(r=>r[1]!=='-'||r[0]==='วันที่')
+  document.getElementById('iosRows').innerHTML=rows.filter(r=>r[1]!=='-'||r[0]==='วันที่')
     .map(([k,v])=>`<div class="ios-row"><span class="ir-k">${esc(k)}</span><span class="ir-v">${esc(v)}</span></div>`).join('');
+
+  // page 2: slip image
+  const slipImg=document.getElementById('iosSlipImg');
+  const noSlip=document.getElementById('iosNoSlip');
+  if(e.thumb){ slipImg.src=e.thumb; slipImg.style.display='block'; noSlip.style.display='none'; }
+  else { slipImg.src=''; slipImg.style.display='none'; noSlip.style.display='block'; }
+
+  // dots + hint only when slip exists
+  const hasDots=!!e.thumb;
+  document.getElementById('iosDots').style.display=hasDots?'flex':'none';
+  document.getElementById('iosSlipHint').style.display=hasDots?'block':'none';
+
   const syncEl=document.getElementById('iosSync');
   if(getSheetUrl()) syncEl.innerHTML=e.synced?'<span style="color:var(--green)">☁ ส่ง Sheet แล้ว</span>':'<span style="color:var(--muted)">↑ ยังไม่ส่ง Sheet</span>';
   else syncEl.innerHTML='';
   document.getElementById('iosBtnEdit').onclick=()=>{ closeEntryDetail(); openMainEntryEdit(id); };
   document.getElementById('iosBtnDel').onclick=()=>{ closeEntryDetail(); deleteEntry(id,true); };
+  setPopupPage(0);
   document.getElementById('iosOverlay').classList.add('show');
   document.getElementById('iosPopup').classList.add('show');
 }
@@ -1417,7 +1457,23 @@ function closeEntryDetail(){
   document.getElementById('iosOverlay').classList.remove('show');
   document.getElementById('iosPopup').classList.remove('show');
   _detailEntryId=null;
+  setPopupPage(0);
 }
+
+// swipe left/right inside the detail popup to switch pages
+(function(){
+  const popup=document.getElementById('iosPopup');
+  let sx=0, sy=0;
+  popup.addEventListener('touchstart',e=>{ sx=e.touches[0].clientX; sy=e.touches[0].clientY; },{passive:true});
+  popup.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx;
+    const dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)<Math.abs(dy)*1.2 || Math.abs(dx)<40) return; // mostly vertical — ignore
+    const hasSlip=document.getElementById('iosSlipImg').style.display!=='none';
+    if(dx<0 && _popupPage===0 && hasSlip) setPopupPage(1);  // swipe left → slip
+    else if(dx>0 && _popupPage===1) setPopupPage(0);         // swipe right → details
+  },{passive:true});
+})();
 
 // edit an existing entry from main list (reuse editModal fields)
 let _mainEditId=null;
