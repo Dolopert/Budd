@@ -137,9 +137,7 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 .fbtn.on { background:var(--ink); border-color:var(--ink); color:white; }
 .entries-list { display:flex; flex-direction:column; gap:6px; }
 .dg-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); padding:8px 2px 4px; }
-.entry { background:var(--paper); border-left:3px solid transparent; border-radius:0 3px 3px 0; padding:11px 14px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
 .entry.income { border-left-color:var(--green); } .entry.expense { border-left-color:var(--red); }
-.entry-thumb { width:40px; height:40px; object-fit:cover; border-radius:2px; border:1px solid var(--rule); flex-shrink:0; cursor:pointer; }
 .entry-info { flex:1; min-width:0; }
 .entry-desc { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .entry-tags { display:flex; gap:5px; flex-wrap:wrap; margin-top:3px; }
@@ -148,8 +146,7 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 .entry-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; }
 .eamount { font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; }
 .entry.income .eamount { color:var(--green); } .entry.expense .eamount { color:var(--red); }
-.edel { background:none; border:none; font-size:11px; color:var(--rule); cursor:pointer; transition:color .12s; }
-.edel:hover { color:var(--red); }
+
 .empty { text-align:center; padding:36px 20px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--rule); border:1px dashed var(--rule); border-radius:3px; letter-spacing:.06em; }
 
 .data-bar { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
@@ -203,7 +200,8 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 .cat-row .cx { background:none; border:none; color:var(--rule); cursor:pointer; font-size:12px; }
 .cat-row .cx:hover { color:var(--red); }
 
-.lightbox { position:fixed; inset:0; background:rgba(0,0,0,.82); z-index:200; display:none; align-items:center; justify-content:center; }
+/* iOS popup variables */
+--ios-blue:#007AFF; --ios-red:#FF3B30; --ios-radius:18px;
 
 /* Batch review: listing */
 .review-screen { position:fixed; inset:0; background:#F2F1ED; z-index:250; display:none; flex-direction:column; }
@@ -228,15 +226,31 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 .rcard .rc-amt   { font-size:16px; font-weight:700; font-family:'IBM Plex Mono',monospace; flex-shrink:0; }
 .rcard .rc-amt.income { color:#3ad29f; } .rcard .rc-amt.expense { color:#ff6b6b; }
 
-/* action buttons inside card */
-.rcard .rc-actions { display:flex; gap:6px; margin-left:8px; flex-shrink:0; }
-.rcard .rc-actions button { width:32px; height:32px; border:none; border-radius:50%; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-.rc-btn-save { background:rgba(58,210,159,.2); color:#3ad29f; }
-.rc-btn-edit { background:rgba(255,255,255,.1); color:#ccc; }
-.rc-btn-del  { background:rgba(255,107,107,.2); color:#ff6b6b; }
-.lightbox.show { display:flex; }
-.lightbox img { max-width:90vw; max-height:88vh; border-radius:3px; }
-.lb-close { position:absolute; top:16px; right:20px; background:none; border:none; color:white; font-size:28px; cursor:pointer; }
+/* main list entry swipe */
+.entry { background:var(--paper); border-left:3px solid transparent; border-radius:0 3px 3px 0; padding:11px 14px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; box-shadow:0 1px 4px rgba(0,0,0,.05); cursor:pointer; user-select:none; will-change:transform; position:relative; z-index:1; }
+.entry-sw-wrap { position:relative; overflow:hidden; }
+.entry-sw-bg { position:absolute; inset:0; background:var(--red); display:flex; align-items:center; justify-content:flex-end; padding-right:20px; opacity:0; transition:opacity .1s; }
+.entry-sw-bg .bg-lbl { color:#fff; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:700; }
+
+/* iOS detail popup */
+.ios-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:300; display:none; }
+.ios-overlay.show { display:block; animation:iofade .22s ease; }
+.ios-popup { position:fixed; bottom:0; left:50%; transform:translateX(-50%) translateY(100%); width:min(100%,480px); background:#fff; border-radius:22px 22px 0 0; padding:24px 22px max(24px,env(safe-area-inset-bottom)); z-index:301; transition:transform .32s cubic-bezier(.32,1,.23,1); box-shadow:0 -4px 40px rgba(0,0,0,.18); }
+.ios-popup.show { transform:translateX(-50%) translateY(0); }
+.ios-close { position:absolute; top:16px; right:18px; width:30px; height:30px; border-radius:50%; background:#f0f0f0; border:none; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#666; }
+.ios-amt { font-size:36px; font-weight:700; font-family:'IBM Plex Mono',monospace; text-align:center; margin-bottom:4px; }
+.ios-amt.income { color:#1B6E42; } .ios-amt.expense { color:#8E1F2F; }
+.ios-desc { font-size:17px; font-weight:600; text-align:center; margin-bottom:18px; color:#1c1c1e; }
+.ios-rows { border-radius:14px; background:#f2f2f7; overflow:hidden; margin-bottom:12px; }
+.ios-row { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid rgba(0,0,0,.07); font-size:14px; }
+.ios-row:last-child { border-bottom:none; }
+.ios-row .ir-k { color:#8e8e93; font-size:13px; }
+.ios-row .ir-v { color:#1c1c1e; font-weight:500; text-align:right; max-width:60%; word-break:break-word; }
+.ios-sync { text-align:center; font-size:12px; margin-bottom:14px; font-family:'IBM Plex Mono',monospace; }
+.ios-btns { display:flex; flex-direction:column; gap:10px; }
+.ios-btn-edit { padding:15px; border-radius:14px; background:#007AFF; border:none; color:#fff; font-size:16px; font-weight:600; cursor:pointer; }
+.ios-btn-del  { padding:15px; border-radius:14px; background:#fff; border:1.5px solid #FF3B30; color:#FF3B30; font-size:16px; font-weight:600; cursor:pointer; }
+@keyframes iofade { from{opacity:0} to{opacity:1} }
 
 .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--ink); color:white; font-family:'IBM Plex Mono',monospace; font-size:11px; padding:10px 20px; border-radius:2px; transition:transform .22s; pointer-events:none; z-index:99; white-space:nowrap; }
 .toast.show { transform:translateX(-50%) translateY(0); }
@@ -457,11 +471,6 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
   </div>
 </div>
 
-<div class="lightbox" id="lightbox" onclick="closeLightbox()">
-  <button class="lb-close">✕</button>
-  <img id="lbImg" src="" alt="slip"/>
-</div>
-
 <!-- Batch review: listing screen -->
 <div class="review-screen" id="reviewScreen">
   <div class="review-head">
@@ -514,6 +523,20 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
         <button class="btn-post" style="padding:9px 18px" onclick="saveEditModal()">บันทึกการแก้ไข</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- iOS-style entry detail popup -->
+<div class="ios-overlay" id="iosOverlay" onclick="closeEntryDetail()"></div>
+<div class="ios-popup" id="iosPopup">
+  <button class="ios-close" onclick="closeEntryDetail()">✕</button>
+  <div class="ios-amt" id="iosAmt"></div>
+  <div class="ios-desc" id="iosDesc"></div>
+  <div class="ios-rows" id="iosRows"></div>
+  <div class="ios-sync" id="iosSync"></div>
+  <div class="ios-btns">
+    <button class="ios-btn-edit" id="iosBtnEdit">✎ แก้ไข</button>
+    <button class="ios-btn-del"  id="iosBtnDel">🗑 ลบ</button>
   </div>
 </div>
 
@@ -814,16 +837,12 @@ function buildReviewRow(item){
   const amtTxt=`${amtSign}${sym}${(f.amount||0).toLocaleString('th-TH',{minimumFractionDigits:2})}`;
   const sub=`${esc(f.category||'')}${f.category&&f.date?' · ':''}${esc(f.date||'')}`;
 
-  // wrapper (for swipe bg reveal)
   const wrap=document.createElement('div'); wrap.className='sw-wrap'; wrap.dataset.id=item.id;
-
-  // background hint
   wrap.innerHTML=`<div class="sw-bg">
     <div class="bg-save"><span class="bg-lbl">✓ บันทึก</span></div>
     <div class="bg-del"><span class="bg-lbl">✕ ลบ</span></div>
   </div>`;
 
-  // card
   const card=document.createElement('div'); card.className='rcard';
   card.innerHTML=`
     <div class="rc-ico">${catIcon(f.category)}</div>
@@ -831,26 +850,14 @@ function buildReviewRow(item){
       <div class="rc-title">${esc(f.desc||'(ไม่มีรายการ)')}</div>
       <div class="rc-sub">${sub}</div>
     </div>
-    <div class="rc-amt ${amtCls}">${amtTxt}</div>
-    <div class="rc-actions">
-      <button class="rc-btn-save" title="บันทึก">✓</button>
-      <button class="rc-btn-edit" title="แก้ไข">✎</button>
-      <button class="rc-btn-del"  title="ลบ">✕</button>
-    </div>`;
+    <div class="rc-amt ${amtCls}">${amtTxt}</div>`;
   wrap.appendChild(card);
 
-  // button actions
-  card.querySelector('.rc-btn-save').onclick=e=>{ e.stopPropagation(); dismissRow(item.id,'save'); };
-  card.querySelector('.rc-btn-del').onclick =e=>{ e.stopPropagation(); dismissRow(item.id,'del'); };
-  card.querySelector('.rc-btn-edit').onclick=e=>{ e.stopPropagation(); openEditModal(item.id); };
-
-  // tap to edit (only if not a swipe)
   attachRowSwipe(card, wrap,
-    ()=> dismissRow(item.id,'save'),  // swipe right → save
-    ()=> dismissRow(item.id,'del'),   // swipe left  → del
-    ()=> openEditModal(item.id)       // tap         → edit
+    ()=> dismissRow(item.id,'save'),
+    ()=> dismissRow(item.id,'del'),
+    ()=> openEditModal(item.id)
   );
-
   return wrap;
 }
 
@@ -905,7 +912,7 @@ function saveFromReview(f, thumb){
   const entry={ id:Date.now()+Math.floor(Math.random()*1000), type:f.type||'expense',
     desc:f.desc||'(ไม่มีรายการ)', amount:f.amount, date:f.date||new Date().toISOString().split('T')[0],
     currency:f.currency||'฿', category:f.category||'', method:'โอนเงิน (Internet Banking)',
-    ref:f.ref||'', note:f.note||'', img:thumb||null };
+    ref:f.ref||'', note:f.note||'' };
   entries.unshift(entry);
   rememberCategory(entry);
   save();
@@ -1243,7 +1250,7 @@ async function pullData(silent){
           desc: r.desc||'', amount: parseFloat(r.amount)||0,
           date: normDate(r.date), currency: r.currency||'฿',
           category: r.category||'', method: r.method||'', ref: r.ref!=null?String(r.ref):'',
-          note: r.note||'', img:null, synced:true
+          note: r.note||'', synced:true
         });
         added++;
       });
@@ -1346,16 +1353,12 @@ function postEntry(){
   const entry={ id:Date.now(), type:curType, desc, amount:amt, date,
     currency:document.getElementById('fCur').value, category:document.getElementById('fCat').value,
     method:document.getElementById('fMethod').value, ref:document.getElementById('fRef').value.trim(),
-    note:document.getElementById('fNote').value.trim(), img:slipThumb||null };
+    note:document.getElementById('fNote').value.trim() };
 
   entries.unshift(entry);
   rememberCategory(entry);
   if(getSheetUrl() && entry.category) pushCats();
-  if(!save()){
-    entry.img=null;
-    if(!save()){ entries.shift(); toast('พื้นที่จัดเก็บเต็ม','err'); return; }
-    toast('บันทึกแล้ว (ไม่เก็บรูป — พื้นที่เต็ม)','ok'); afterSave(); return;
-  }
+  if(!save()){ entries.shift(); toast('พื้นที่จัดเก็บเต็ม','err'); return; }
   toast('บันทึกแล้ว ✓','ok'); afterSave();
 
   // ── auto-send to Sheet ──
@@ -1380,13 +1383,11 @@ function clearForm(){
   document.getElementById('amtSym').textContent='฿';
   resetImage(); setType('expense');
 }
-function deleteEntry(id){
+function deleteEntry(id, skipConfirm=false){
   const e=entries.find(x=>x.id===id);
   if(!e) return;
-  if(!confirm('ลบรายการนี้?\n'+(e.desc||'')+' '+(e.currency||'฿')+e.amount)) return;
-  // remove locally
+  if(!skipConfirm && !confirm('ลบรายการนี้?\n'+(e.desc||'')+' '+(e.currency||'฿')+e.amount)) return;
   entries=entries.filter(x=>x.id!==id); save(); render();
-  // always tell the Sheet to delete this id (it deletes if found, ignores if not)
   if(getSheetUrl()){
     fetch(getSheetUrl(),{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ action:'deleteRow', id }) })
@@ -1403,8 +1404,101 @@ function deleteEntry(id){
     toast('ลบรายการแล้ว ✓','ok');
   }
 }
-function openLightbox(src){ document.getElementById('lbImg').src=src; document.getElementById('lightbox').classList.add('show'); }
-function closeLightbox(){ document.getElementById('lightbox').classList.remove('show'); }
+
+// ════════ iOS-style entry detail popup ════════
+let _detailEntryId=null;
+
+function openEntryDetail(id){
+  const e=entries.find(x=>x.id===id); if(!e) return;
+  _detailEntryId=id;
+  const sym=e.currency||'฿';
+  const amtEl=document.getElementById('iosAmt');
+  amtEl.className='ios-amt '+(e.type==='income'?'income':'expense');
+  amtEl.textContent=(e.type==='income'?'+':'−')+sym+e.amount.toLocaleString('th-TH',{minimumFractionDigits:2});
+  document.getElementById('iosDesc').textContent=e.desc||'(ไม่มีรายการ)';
+  const rows=[
+    ['ประเภท', e.type==='income'?'รายรับ':'รายจ่าย'],
+    ['วันที่', e.date||'-'],
+    ['หมวดหมู่', e.category||'-'],
+    ['ช่องทาง', e.method||'-'],
+    ['เลขอ้างอิง', e.ref||'-'],
+    ['หมายเหตุ', e.note||'-'],
+  ];
+  document.getElementById('iosRows').innerHTML=rows.filter(r=>r[1]!=='-'||r[0]==='วันที่')
+    .map(([k,v])=>`<div class="ios-row"><span class="ir-k">${esc(k)}</span><span class="ir-v">${esc(v)}</span></div>`).join('');
+  const syncEl=document.getElementById('iosSync');
+  if(getSheetUrl()) syncEl.innerHTML=e.synced?'<span style="color:var(--green)">☁ ส่ง Sheet แล้ว</span>':'<span style="color:var(--muted)">↑ ยังไม่ส่ง Sheet</span>';
+  else syncEl.innerHTML='';
+  document.getElementById('iosBtnEdit').onclick=()=>{ closeEntryDetail(); openMainEntryEdit(id); };
+  document.getElementById('iosBtnDel').onclick=()=>{ closeEntryDetail(); deleteEntry(id,true); };
+  document.getElementById('iosOverlay').classList.add('show');
+  document.getElementById('iosPopup').classList.add('show');
+}
+function closeEntryDetail(){
+  document.getElementById('iosOverlay').classList.remove('show');
+  document.getElementById('iosPopup').classList.remove('show');
+  _detailEntryId=null;
+}
+
+// edit an existing entry from main list (reuse editModal fields)
+let _mainEditId=null;
+function openMainEntryEdit(id){
+  const e=entries.find(x=>x.id===id); if(!e) return;
+  _mainEditId=id;
+  document.getElementById('eType').value=e.type||'expense';
+  document.getElementById('eAmt').value=e.amount||'';
+  document.getElementById('eDate').value=e.date||'';
+  document.getElementById('eDesc').value=e.desc||'';
+  document.getElementById('eCat').value=e.category||'';
+  document.getElementById('eRef').value=e.ref||'';
+  document.getElementById('eNote').value=e.note||'';
+  // temporarily override save button
+  const btn=document.querySelector('#editModal .btn-post');
+  btn._origOnclick=btn.onclick;
+  btn.onclick=saveMainEntryEdit;
+  document.getElementById('editModal').classList.add('show');
+}
+function saveMainEntryEdit(){
+  if(!_mainEditId) return;
+  const e=entries.find(x=>x.id===_mainEditId); if(!e) return;
+  e.type=document.getElementById('eType').value;
+  e.amount=parseFloat(document.getElementById('eAmt').value)||0;
+  e.date=document.getElementById('eDate').value;
+  e.desc=document.getElementById('eDesc').value;
+  e.category=document.getElementById('eCat').value;
+  e.ref=document.getElementById('eRef').value;
+  e.note=document.getElementById('eNote').value;
+  e.synced=false;  // mark for re-sync
+  save(); render();
+  // restore original save button
+  const btn=document.querySelector('#editModal .btn-post');
+  btn.onclick=btn._origOnclick||null;
+  document.getElementById('editModal').classList.remove('show');
+  _mainEditId=null;
+  toast('แก้ไขรายการแล้ว ✓','ok');
+}
+
+// ════════ Entry swipe in main list (ปัดซ้าย=ลบ) ════════
+function attachEntrySwipe(entryEl, id){
+  let startX=0, curX=0, dragging=false, moved=false;
+  const bg=entryEl.parentElement?.querySelector('.entry-sw-bg');
+  const TH=90;
+  const down=x=>{ startX=x; dragging=true; moved=false; entryEl.style.transition='none'; };
+  const move=x=>{ if(!dragging)return; curX=x-startX; if(Math.abs(curX)>8) moved=true;
+    if(curX<0){ entryEl.style.transform=`translateX(${curX}px)`; if(bg) bg.style.opacity=Math.min(1,Math.abs(curX)/TH); }
+    else{ entryEl.style.transform=''; if(bg) bg.style.opacity=0; } };
+  const up=()=>{ if(!dragging)return; dragging=false;
+    entryEl.style.transition='transform .2s ease, opacity .2s ease';
+    if(curX<-TH){ entryEl.style.transform='translateX(-110%)'; entryEl.style.opacity='0';
+      setTimeout(()=>{ deleteEntry(id,true); },200); }
+    else{ entryEl.style.transform=''; if(bg) bg.style.opacity=0; } curX=0; };
+  entryEl.addEventListener('touchstart',e=>down(e.touches[0].clientX),{passive:true});
+  entryEl.addEventListener('touchmove',e=>{ if(dragging) move(e.touches[0].clientX); },{passive:true});
+  entryEl.addEventListener('touchend',up);
+  entryEl.addEventListener('mousedown',e=>down(e.clientX));
+  window.addEventListener('mousemove',e=>{ if(dragging) move(e.clientX); });
+  window.addEventListener('mouseup',()=>{ if(dragging) up(); });
+}
 
 function monthKey(dateStr){ const d=new Date(dateStr+'T00:00:00'); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function monthLabel(key){ const [y,m]=key.split('-').map(Number); return new Date(y,m-1,1).toLocaleDateString('th-TH',{month:'long',year:'numeric'}); }
@@ -1451,16 +1545,19 @@ function render(){
       html+=`<div class="dg-label">${d.toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'})}</div>`;
       byD[date].forEach(e=>{
         const sign=e.type==='income'?'+':'−'; const s=e.currency||'฿';
-        const thumb=e.img?`<img class="entry-thumb" src="${e.img}" onclick="openLightbox('${e.img.replace(/'/g,"\\'")}')"/>`:'';
-        html+=`<div class="entry ${e.type}">${thumb}
-          <div class="entry-info">
-            <div class="entry-desc">${esc(e.desc)}</div>
-            <div class="entry-tags">${e.category?`<span class="etag">${esc(e.category)}</span>`:''}<span class="etag">${esc(e.method||'')}</span>${e.ref?`<span class="etag">#${esc(e.ref)}</span>`:''}</div>
-            ${e.note?`<div class="entry-note">${esc(e.note)}</div>`:''}
+        html+=`<div class="entry-sw-wrap">
+          <div class="entry-sw-bg"><span class="bg-lbl">🗑 ลบ</span></div>
+          <div class="entry ${e.type}" data-eid="${e.id}" onclick="openEntryDetail(${e.id})">
+            <div class="entry-info">
+              <div class="entry-desc">${esc(e.desc)}</div>
+              <div class="entry-tags">${e.category?`<span class="etag">${esc(e.category)}</span>`:''}<span class="etag">${esc(e.method||'')}</span>${e.ref?`<span class="etag">#${esc(e.ref)}</span>`:''}</div>
+              ${e.note?`<div class="entry-note">${esc(e.note)}</div>`:''}
+            </div>
+            <div class="entry-right">
+              <div class="eamount">${sign}${s}${e.amount.toLocaleString('th-TH',{minimumFractionDigits:2})}</div>
+              ${ getSheetUrl() ? (e.synced?'<span class="entry-synced">☁ ส่งแล้ว</span>':`<span class="entry-unsynced" onclick="event.stopPropagation();syncOne(${e.id})">↑ ส่งไป Sheet</span>`) : '' }
+            </div>
           </div>
-          <div class="entry-right"><div class="eamount">${sign}${s}${e.amount.toLocaleString('th-TH',{minimumFractionDigits:2})}</div>
-          ${ getSheetUrl() ? (e.synced?'<span class="entry-synced">☁ ส่งแล้ว</span>':`<span class="entry-unsynced" onclick="syncOne(${e.id})">↑ ส่งไป Sheet</span>`) : '' }
-          <button class="edel" onclick="deleteEntry(${e.id})">✕</button></div>
         </div>`;
       });
     });
@@ -1470,6 +1567,10 @@ function render(){
   const sticky=document.getElementById('monthSticky');
   if(months.length){ sticky.textContent=monthLabel(months[0]); }
   updateStickyMonth();
+  // attach swipe-to-delete on each entry
+  list.querySelectorAll('.entry[data-eid]').forEach(el=>{
+    attachEntrySwipe(el, Number(el.dataset.eid));
+  });
 }
 
 // update sticky month label based on which month-head is at the top of the viewport
