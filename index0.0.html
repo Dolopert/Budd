@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"/>
+<title>Finance Slip</title>
+
+<!-- PWA -->
+<meta name="theme-color" content="#181816"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<!-- iOS specific -->
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Finance Slip"/>
+<link rel="apple-touch-icon" href="icon-180.png"/>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg:#F2F1ED; --paper:#FFF; --ink:#181816; --faint:#ECEAE3; --rule:#D6D3CA;
+  --green:#1B6E42; --green-bg:#E4F2EB; --red:#8E1F2F; --red-bg:#FAEBEC;
+  --blue:#1D4ED8; --blue-bg:#EFF6FF; --muted:#8A8880;
+  --gold:#A07820; --gold-bg:#FDF6E3; --shadow:0 2px 12px rgba(24,24,22,.08);
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; padding-bottom:60px; }
+
+.topbar { background:var(--ink); padding:13px 20px; padding-top:max(13px, env(safe-area-inset-top)); display:flex; justify-content:space-between; align-items:center; }
+.brand { font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; letter-spacing:.14em; color:white; text-transform:uppercase; }
+.top-date { font-family:'IBM Plex Mono',monospace; font-size:10px; color:rgba(255,255,255,.4); }
+
+.summary { display:grid; grid-template-columns:1fr 1fr 1fr; background:white; border-bottom:1px solid var(--rule); }
+.sum-cell { padding:13px 14px; text-align:center; }
+.sum-cell+.sum-cell { border-left:1px solid var(--rule); }
+.sum-lbl { font-family:'IBM Plex Mono',monospace; font-size:8px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+.sum-val { font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; line-height:1; }
+.sum-val.inc { color:var(--green); } .sum-val.exp { color:var(--red); }
+
+.month-nav { display:flex; align-items:center; background:var(--faint); border-bottom:1px solid var(--rule); padding:8px 16px; }
+.mnav-btn { background:none; border:1px solid var(--rule); border-radius:2px; width:26px; height:26px; font-size:15px; cursor:pointer; color:var(--muted); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.mnav-label { flex:1; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; }
+
+.wrap { max-width:680px; margin:0 auto; padding:20px 14px; }
+
+.slip-card { background:var(--paper); border-radius:2px; box-shadow:var(--shadow); margin-bottom:22px; overflow:hidden; }
+.perf { height:13px; background:repeating-linear-gradient(90deg,var(--bg) 0 9px,transparent 9px 14px); border-bottom:1px solid var(--rule); position:relative; }
+.perf::before,.perf::after { content:''; position:absolute; top:50%; transform:translateY(-50%); width:12px; height:12px; border-radius:50%; background:var(--bg); border:1px solid var(--rule); }
+.perf::before { left:-6px; } .perf::after { right:-6px; }
+.perf-bot { border-top:1px solid var(--rule); border-bottom:none; }
+
+.img-zone { margin:16px 18px 0; border:2px dashed var(--rule); border-radius:3px; background:var(--faint); cursor:pointer; transition:border-color .2s,background .2s; position:relative; overflow:hidden; min-height:100px; display:flex; align-items:center; justify-content:center; }
+.img-zone:hover { border-color:var(--blue); background:var(--blue-bg); }
+.img-zone.has-img { border-style:solid; border-color:var(--rule); background:white; min-height:0; cursor:default; }
+.img-zone.drag-over { border-color:var(--blue); background:var(--blue-bg); }
+.img-placeholder { display:flex; flex-direction:column; align-items:center; gap:6px; padding:20px; pointer-events:none; }
+.img-placeholder .icon { font-size:28px; }
+.img-placeholder .txt { font-size:13px; color:var(--muted); text-align:center; }
+.img-placeholder .txt span { color:var(--blue); text-decoration:underline; cursor:pointer; pointer-events:all; }
+.slip-preview { width:100%; max-height:260px; object-fit:contain; display:none; border-radius:2px; }
+.slip-preview.show { display:block; }
+.img-zone input[type=file] { display:none; }
+.img-actions { position:absolute; top:8px; right:8px; display:none; gap:6px; }
+.img-zone.has-img .img-actions { display:flex; }
+.img-act-btn { background:rgba(24,24,22,.72); color:white; border:none; border-radius:3px; font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600; padding:5px 10px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:background .15s; }
+.img-act-btn:hover { background:var(--ink); }
+.img-act-btn.blue { background:var(--blue); } .img-act-btn.blue:hover { background:#1338be; }
+.img-act-btn:disabled { opacity:.5; cursor:not-allowed; }
+
+.scan-overlay { position:absolute; inset:0; background:rgba(255,255,255,.92); display:none; align-items:center; justify-content:center; flex-direction:column; gap:10px; border-radius:2px; padding:16px; }
+.scan-overlay.show { display:flex; }
+.spinner { width:24px; height:24px; border:3px solid var(--rule); border-top-color:var(--blue); border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.scan-txt { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); text-align:center; }
+.scan-bar { width:160px; height:4px; background:var(--faint); border-radius:2px; overflow:hidden; }
+.scan-bar-fill { height:100%; width:0%; background:var(--blue); transition:width .2s; }
+
+.qr-result { display:none; margin:10px 18px 0; background:var(--blue-bg); border:1px solid var(--blue); border-radius:2px; padding:8px 12px; font-size:11px; color:var(--blue); align-items:flex-start; gap:8px; word-break:break-all; }
+.qr-result.show { display:flex; }
+.qr-result .qr-icon { flex-shrink:0; }
+.qr-result a { color:var(--blue); }
+
+.ocr-banner { display:none; margin:10px 18px 0; background:var(--gold-bg); border:1px solid var(--gold); border-radius:2px; padding:8px 12px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--gold); align-items:center; gap:7px; }
+.ocr-banner.show { display:flex; }
+
+.slip-top { padding:14px 18px 4px; }
+.slip-top-title { font-size:15px; font-weight:700; }
+.slip-top-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+
+.type-row { padding:10px 18px; display:flex; gap:8px; }
+.type-pill { flex:1; padding:9px; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; border:1.5px solid var(--rule); border-radius:40px; background:var(--faint); color:var(--muted); cursor:pointer; transition:all .15s; text-align:center; }
+.type-pill.a-inc { background:var(--green-bg); border-color:var(--green); color:var(--green); }
+.type-pill.a-exp { background:var(--red-bg); border-color:var(--red); color:var(--red); }
+
+.amount-row { padding:12px 18px 10px; display:flex; align-items:center; gap:8px; border-bottom:1.5px solid var(--rule); transition:border-color .2s; }
+.amt-sym { font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; color:var(--muted); flex-shrink:0; transition:color .2s; }
+.amt-input { flex:1; background:none; border:none; outline:none; font-family:'IBM Plex Mono',monospace; font-size:28px; font-weight:600; color:var(--ink); min-width:0; transition:color .2s; }
+.amt-input::placeholder { color:var(--rule); font-weight:400; }
+.cur-sel { background:var(--faint); border:1px solid var(--rule); border-radius:20px; padding:4px 10px; font-family:'IBM Plex Mono',monospace; font-size:11px; cursor:pointer; color:var(--muted); outline:none; -webkit-appearance:none; appearance:none; }
+
+.slip-body { padding:0 18px 12px; }
+.slip-line { display:flex; align-items:baseline; border-bottom:1px solid var(--faint); padding:9px 0 6px; gap:10px; }
+.sll { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); min-width:72px; flex-shrink:0; }
+.slip-line input,.slip-line select,.slip-line textarea { flex:1; background:none; border:none; outline:none; font-family:'Sarabun',sans-serif; font-size:14px; color:var(--ink); padding:0; min-width:0; transition:color .2s; }
+.slip-line textarea { resize:none; height:38px; line-height:1.4; }
+.slip-line input::placeholder,.slip-line textarea::placeholder { color:var(--rule); }
+.slip-line select { cursor:pointer; -webkit-appearance:none; appearance:none; }
+.ocr-f { color:var(--gold) !important; }
+
+.slip-dash { border:none; border-top:1px dashed var(--rule); margin:4px 18px; }
+.slip-footer { padding:12px 18px 14px; display:flex; justify-content:space-between; align-items:center; }
+.btn-clear { font-family:'IBM Plex Mono',monospace; font-size:10px; background:none; border:none; color:var(--muted); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+.btn-post { font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; background:var(--ink); color:white; border:none; border-radius:2px; padding:10px 24px; cursor:pointer; transition:opacity .15s; }
+.btn-post:hover { opacity:.8; }
+
+.ledger-hd { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.ledger-title { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
+.filter-bar { display:flex; gap:5px; }
+.fbtn { padding:4px 10px; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.08em; border:1px solid var(--rule); border-radius:20px; background:none; color:var(--muted); cursor:pointer; transition:all .15s; }
+.fbtn.on { background:var(--ink); border-color:var(--ink); color:white; }
+.entries-list { display:flex; flex-direction:column; gap:6px; }
+.dg-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); padding:8px 2px 4px; }
+.entry { background:var(--paper); border-left:3px solid transparent; border-radius:0 3px 3px 0; padding:11px 14px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
+.entry.income { border-left-color:var(--green); } .entry.expense { border-left-color:var(--red); }
+.entry-thumb { width:40px; height:40px; object-fit:cover; border-radius:2px; border:1px solid var(--rule); flex-shrink:0; cursor:pointer; }
+.entry-info { flex:1; min-width:0; }
+.entry-desc { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.entry-tags { display:flex; gap:5px; flex-wrap:wrap; margin-top:3px; }
+.etag { font-family:'IBM Plex Mono',monospace; font-size:9px; background:var(--faint); color:var(--muted); padding:1px 6px; border-radius:20px; }
+.entry-note { font-size:11px; color:var(--muted); margin-top:3px; }
+.entry-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; }
+.eamount { font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; }
+.entry.income .eamount { color:var(--green); } .entry.expense .eamount { color:var(--red); }
+.edel { background:none; border:none; font-size:11px; color:var(--rule); cursor:pointer; transition:color .12s; }
+.edel:hover { color:var(--red); }
+.empty { text-align:center; padding:36px 20px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--rule); border:1px dashed var(--rule); border-radius:3px; letter-spacing:.06em; }
+
+.data-bar { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.data-btn { padding:6px 11px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.04em; border:1px solid var(--rule); border-radius:3px; background:white; color:var(--ink); cursor:pointer; transition:all .15s; }
+.data-btn:hover { border-color:var(--ink); }
+.data-btn:disabled { opacity:.5; cursor:not-allowed; }
+.entry-synced { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--green); letter-spacing:.06em; }
+.entry-unsynced { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted); letter-spacing:.06em; cursor:pointer; text-decoration:underline; }
+
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:300; display:none; align-items:flex-start; justify-content:center; padding:20px; overflow:auto; }
+.modal.show { display:flex; }
+.modal-card { background:white; border-radius:4px; width:100%; max-width:540px; margin-top:24px; box-shadow:0 12px 48px rgba(0,0,0,.3); }
+.modal-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--rule); }
+.modal-title { font-size:14px; font-weight:700; }
+.modal-x { background:none; border:none; font-size:16px; color:var(--muted); cursor:pointer; }
+.modal-body { padding:16px 18px; }
+.modal-p { font-size:13px; color:var(--ink); margin-bottom:10px; line-height:1.5; }
+.modal-input { width:100%; font-family:'IBM Plex Mono',monospace; font-size:12px; padding:9px 11px; border:1px solid var(--rule); border-radius:3px; outline:none; }
+.modal-input:focus { border-color:var(--ink); }
+.auto-toggle { display:flex; align-items:center; gap:8px; margin-top:12px; font-size:13px; color:var(--ink); cursor:pointer; }
+.auto-toggle input { width:16px; height:16px; cursor:pointer; }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; align-items:center; }
+.how-to { margin-top:18px; border-top:1px dashed var(--rule); padding-top:12px; }
+.how-to summary { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--blue); cursor:pointer; letter-spacing:.04em; }
+.how-list { margin:10px 0 12px; padding-left:20px; font-size:12px; line-height:1.7; color:var(--ink); }
+.how-list b { font-weight:600; }
+.code-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+.code-block { background:#1C1C1A; color:#C8E6B0; font-family:'IBM Plex Mono',monospace; font-size:10px; line-height:1.5; padding:12px; border-radius:3px; white-space:pre; overflow:auto; max-height:260px; }
+
+.lightbox { position:fixed; inset:0; background:rgba(0,0,0,.82); z-index:200; display:none; align-items:center; justify-content:center; }
+.lightbox.show { display:flex; }
+.lightbox img { max-width:90vw; max-height:88vh; border-radius:3px; }
+.lb-close { position:absolute; top:16px; right:20px; background:none; border:none; color:white; font-size:28px; cursor:pointer; }
+
+.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--ink); color:white; font-family:'IBM Plex Mono',monospace; font-size:11px; padding:10px 20px; border-radius:2px; transition:transform .22s; pointer-events:none; z-index:99; white-space:nowrap; }
+.toast.show { transform:translateX(-50%) translateY(0); }
+.toast.ok { background:var(--green); } .toast.err { background:var(--red); }
+
+@media(max-width:480px){ .sum-val{font-size:13px;} .amt-input{font-size:22px;} }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">Finance Slip</span>
+  <span class="top-date" id="hdrDate"></span>
+</div>
+
+<div class="summary">
+  <div class="sum-cell"><div class="sum-lbl">รายรับ</div><div class="sum-val inc" id="sInc">฿0</div></div>
+  <div class="sum-cell"><div class="sum-lbl">รายจ่าย</div><div class="sum-val exp" id="sExp">฿0</div></div>
+  <div class="sum-cell"><div class="sum-lbl">คงเหลือ</div><div class="sum-val" id="sBal">฿0</div></div>
+</div>
+
+<div class="month-nav">
+  <button class="mnav-btn" id="prevM">‹</button>
+  <span class="mnav-label" id="mLabel"></span>
+  <button class="mnav-btn" id="nextM">›</button>
+</div>
+
+<div class="wrap">
+  <div class="slip-card">
+    <div class="perf"></div>
+
+    <div class="img-zone" id="imgZone">
+      <input type="file" id="fileInput" accept="image/*"/>
+      <div class="img-placeholder" id="imgPlaceholder">
+        <div class="icon">🧾</div>
+        <div class="txt">แนบรูปสลิป หรือ <span id="browseLink">เลือกไฟล์</span></div>
+        <div class="txt" style="font-size:11px;margin-top:-2px;">สแกนฟอร์ม (OCR) + QR — ทำงานในเครื่อง</div>
+      </div>
+      <img class="slip-preview" id="slipPreview" alt="slip"/>
+      <div class="img-actions">
+        <button class="img-act-btn blue" id="btnScan">🔍 สแกนฟอร์ม</button>
+        <button class="img-act-btn" id="btnRemoveImg">✕ เปลี่ยนรูป</button>
+      </div>
+      <div class="scan-overlay" id="scanOverlay">
+        <div class="spinner"></div>
+        <div class="scan-txt" id="scanTxt">กำลังเตรียม…</div>
+        <div class="scan-bar"><div class="scan-bar-fill" id="scanBar"></div></div>
+      </div>
+    </div>
+
+    <div class="qr-result" id="qrResult"><span class="qr-icon">▦</span><span id="qrText"></span></div>
+    <div class="ocr-banner" id="ocrBanner">✨ สแกนฟอร์มแล้ว — ตรวจสอบและแก้ไขก่อนบันทึก (ช่องสีทองมาจากการสแกน)</div>
+
+    <div class="slip-top">
+      <div class="slip-top-title">บันทึกรายการ</div>
+      <div class="slip-top-sub">กรอกเอง หรือแนบสลิปแล้วกดสแกนฟอร์ม</div>
+    </div>
+
+    <div class="type-row">
+      <button class="type-pill" id="pillInc" onclick="setType('income')">+ รายรับ</button>
+      <button class="type-pill a-exp" id="pillExp" onclick="setType('expense')">− รายจ่าย</button>
+    </div>
+
+    <div class="amount-row" id="amtRow">
+      <span class="amt-sym" id="amtSym">฿</span>
+      <input class="amt-input" type="number" id="fAmt" placeholder="0.00" min="0" step="any" inputmode="decimal"/>
+      <select class="cur-sel" id="fCur" onchange="document.getElementById('amtSym').textContent=this.value">
+        <option value="฿">฿</option><option value="$">$</option><option value="¥">¥</option>
+        <option value="€">€</option><option value="£">£</option>
+      </select>
+    </div>
+
+    <div class="slip-body">
+      <div class="slip-line"><span class="sll">รายการ</span><input type="text" id="fDesc" placeholder="ระบุรายการ เช่น โอนเงิน / ค่าอาหาร…"/></div>
+      <div class="slip-line"><span class="sll">วันที่</span><input type="date" id="fDate"/></div>
+      <div class="slip-line"><span class="sll">หมวดหมู่</span>
+        <select id="fCat">
+          <option value="">— เลือก —</option>
+          <optgroup label="รายรับ">
+            <option>เงินเดือน</option><option>ฟรีแลนซ์</option><option>โอนเงินรับ</option>
+            <option>เงินคืน / Refund</option><option>ดอกเบี้ย / ปันผล</option><option>รายรับอื่นๆ</option>
+          </optgroup>
+          <optgroup label="รายจ่าย">
+            <option>อาหาร & เครื่องดื่ม</option><option>การเดินทาง</option><option>ของชำ / ซุปเปอร์มาร์เก็ต</option>
+            <option>ค่าสาธารณูปโภค</option><option>สุขภาพ / ยา</option><option>ช้อปปิ้ง</option><option>บันเทิง</option>
+            <option>ค่าเช่า / ที่พัก</option><option>การศึกษา</option><option>เติมเงิน / E-Wallet</option>
+            <option>โอนเงิน</option><option>รายจ่ายอื่นๆ</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="slip-line"><span class="sll">ช่องทาง</span>
+        <select id="fMethod">
+          <option>โอนเงิน (Internet Banking)</option><option>PromptPay</option><option>เงินสด</option>
+          <option>บัตรเครดิต</option><option>บัตรเดบิต</option><option>Mobile Banking</option>
+          <option>QR Code</option><option>อื่นๆ</option>
+        </select>
+      </div>
+      <div class="slip-line"><span class="sll">เลขอ้างอิง</span><input type="text" id="fRef" placeholder="เลขที่รายการจากสลิป…"/></div>
+      <div class="slip-line" style="align-items:flex-start;padding-top:10px;"><span class="sll" style="padding-top:2px;">หมายเหตุ</span><textarea id="fNote" placeholder="ชื่อผู้โอน / ผู้รับ หรือหมายเหตุ…"></textarea></div>
+    </div>
+
+    <hr class="slip-dash"/>
+    <div class="slip-footer">
+      <button class="btn-clear" onclick="clearForm()">ล้างข้อมูล</button>
+      <button class="btn-post" id="btnPost">บันทึกสลิป ↵</button>
+    </div>
+    <div class="perf perf-bot"></div>
+  </div>
+
+  <div class="ledger-hd">
+    <span class="ledger-title">รายการทั้งหมด</span>
+    <div class="filter-bar">
+      <button class="fbtn on" onclick="setFilter('all',this)">ทั้งหมด</button>
+      <button class="fbtn" onclick="setFilter('income',this)">รายรับ</button>
+      <button class="fbtn" onclick="setFilter('expense',this)">รายจ่าย</button>
+    </div>
+  </div>
+
+  <div class="data-bar">
+    <button class="data-btn" id="btnSyncAll">☁ ซิงค์ทั้งหมด</button>
+    <button class="data-btn" onclick="exportJSON()">⬇ สำรอง (JSON)</button>
+    <button class="data-btn" onclick="exportCSV()">⬇ CSV</button>
+    <button class="data-btn" onclick="document.getElementById('importFile').click()">⬆ นำเข้า</button>
+    <button class="data-btn" onclick="openSheetSettings()">⚙ ตั้งค่า Sheet</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none"/>
+  </div>
+
+  <div class="entries-list" id="eList"></div>
+</div>
+
+<!-- Sheet settings modal -->
+<div class="modal" id="sheetModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <span class="modal-title">ตั้งค่าเชื่อม Google Sheet</span>
+      <button class="modal-x" onclick="closeSheetSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-p">วางลิงก์ <b>Web App URL</b> ที่ได้จาก Google Apps Script (ดูวิธีทำด้านล่าง) แล้วกดบันทึก</p>
+      <input type="text" id="sheetUrl" class="modal-input" placeholder="https://script.google.com/macros/s/..../exec"/>
+      <label class="auto-toggle"><input type="checkbox" id="autoSendChk"/> <span>ส่งเข้า Sheet อัตโนมัติทุกครั้งที่บันทึก</span></label>
+      <div class="modal-actions">
+        <button class="data-btn" id="btnTestSheet">ทดสอบส่ง</button>
+        <button class="btn-post" style="padding:9px 18px" onclick="saveSheetUrl()">บันทึก URL</button>
+      </div>
+
+      <details class="how-to">
+        <summary>วิธีตั้งค่า Google Apps Script (ทำครั้งเดียว)</summary>
+        <ol class="how-list">
+          <li>เปิด Google Sheet ใหม่ → เมนู <b>Extensions ▸ Apps Script</b></li>
+          <li>ลบโค้ดเดิม แล้ววางโค้ดด้านล่างนี้ทั้งหมด</li>
+          <li>กด <b>Deploy ▸ New deployment</b> → เลือก type เป็น <b>Web app</b></li>
+          <li>ตั้ง <b>Execute as: Me</b> และ <b>Who has access: Anyone</b> → Deploy</li>
+          <li>คัดลอก <b>Web app URL</b> มาวางในช่องด้านบน → กด <b>ทดสอบส่ง</b></li>
+          <li>ตรวจง่ายๆ: เปิด Web app URL ในแท็บใหม่ ควรเห็น <code>{"ok":true,"rows":...}</code> = ใช้ได้</li>
+        </ol>
+        <div class="code-label">โค้ด Apps Script:</div>
+        <pre class="code-block" id="gsCode"></pre>
+        <button class="data-btn" onclick="copyGsCode()" style="margin-top:6px">คัดลอกโค้ด</button>
+      </details>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lb-close">✕</button>
+  <img id="lbImg" src="" alt="slip"/>
+</div>
+<div class="toast" id="toastEl"></div>
+<canvas id="qrCanvas" style="display:none;"></canvas>
+<canvas id="ocrCanvas" style="display:none;"></canvas>
+
+<script>
+let entries = JSON.parse(localStorage.getItem('fs9') || '[]');
+let curType = 'expense';
+let curFilter = 'all';
+let vDate = new Date();
+let slipImgEl = null;     // full-res image for OCR/QR
+let slipThumb = null;     // compressed thumbnail, ready to save immediately
+
+function init(){
+  const now=new Date();
+  document.getElementById('fDate').value=now.toISOString().split('T')[0];
+  document.getElementById('hdrDate').textContent=now.toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  updateMonth(); render(); setType('expense');
+}
+function updateMonth(){ document.getElementById('mLabel').textContent=vDate.toLocaleDateString('th-TH',{month:'long',year:'numeric'}); }
+document.getElementById('prevM').onclick=()=>{vDate.setMonth(vDate.getMonth()-1);updateMonth();render();};
+document.getElementById('nextM').onclick=()=>{vDate.setMonth(vDate.getMonth()+1);updateMonth();render();};
+
+const imgZone=document.getElementById('imgZone'), fileInput=document.getElementById('fileInput'),
+      slipPrev=document.getElementById('slipPreview'), imgHolder=document.getElementById('imgPlaceholder'),
+      scanOverlay=document.getElementById('scanOverlay'), scanTxt=document.getElementById('scanTxt'),
+      scanBar=document.getElementById('scanBar'),
+      btnScan=document.getElementById('btnScan'), btnRemove=document.getElementById('btnRemoveImg');
+
+document.getElementById('browseLink').onclick=e=>{e.stopPropagation();fileInput.click();};
+imgZone.onclick=e=>{ if(!imgZone.classList.contains('has-img')) fileInput.click(); };
+fileInput.onchange=e=>{ if(e.target.files[0]) loadImg(e.target.files[0]); };
+imgZone.addEventListener('dragover',e=>{e.preventDefault();imgZone.classList.add('drag-over');});
+imgZone.addEventListener('dragleave',()=>imgZone.classList.remove('drag-over'));
+imgZone.addEventListener('drop',e=>{e.preventDefault();imgZone.classList.remove('drag-over'); if(e.dataTransfer.files[0]) loadImg(e.dataTransfer.files[0]);});
+
+function loadImg(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const dataUrl=ev.target.result;
+    slipPrev.src=dataUrl; slipPrev.classList.add('show');
+    imgHolder.style.display='none'; imgZone.classList.add('has-img'); imgZone.style.cursor='default';
+    document.getElementById('qrResult').classList.remove('show');
+    document.getElementById('ocrBanner').classList.remove('show');
+    clearOcrHighlight();
+    slipThumb=null;
+    slipImgEl=new Image();
+    slipImgEl.onload=()=>{
+      // build compressed thumbnail now so saving is instant later
+      try{
+        const max=360; let w=slipImgEl.naturalWidth,h=slipImgEl.naturalHeight;
+        const s=Math.min(1,max/Math.max(w,h));
+        const cw=Math.max(1,Math.round(w*s)),ch=Math.max(1,Math.round(h*s));
+        const c=document.createElement('canvas'); c.width=cw; c.height=ch;
+        const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,cw,ch); x.drawImage(slipImgEl,0,0,cw,ch);
+        slipThumb=c.toDataURL('image/jpeg',0.7);
+      }catch{ slipThumb=null; }
+    };
+    slipImgEl.src=dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+btnRemove.onclick=e=>{ e.stopPropagation(); resetImage(); };
+function resetImage(){
+  slipImgEl=null; slipThumb=null;
+  slipPrev.src=''; slipPrev.classList.remove('show');
+  imgHolder.style.display=''; imgZone.classList.remove('has-img'); imgZone.style.cursor='';
+  fileInput.value='';
+  document.getElementById('qrResult').classList.remove('show');
+  document.getElementById('ocrBanner').classList.remove('show');
+  clearOcrHighlight();
+}
+
+// ── QR decode (local) ──
+function decodeQR(){
+  return new Promise(resolve=>{
+    if(!slipImgEl){ resolve(null); return; }
+    try{
+      const canvas=document.getElementById('qrCanvas'), ctx=canvas.getContext('2d');
+      const maxDim=1400;
+      let w=slipImgEl.naturalWidth, h=slipImgEl.naturalHeight;
+      const scale=Math.min(1,maxDim/Math.max(w,h));
+      w=Math.round(w*scale); h=Math.round(h*scale);
+      canvas.width=w; canvas.height=h;
+      ctx.drawImage(slipImgEl,0,0,w,h);
+      const d=ctx.getImageData(0,0,w,h);
+      const code=(typeof jsQR==='function')? jsQR(d.data,w,h,{inversionAttempts:'attemptBoth'}) : null;
+      resolve(code? code.data : null);
+    }catch{ resolve(null); }
+  });
+}
+
+function prepOcrCanvas(){
+  const c=document.getElementById('ocrCanvas'), ctx=c.getContext('2d');
+  let w=slipImgEl.naturalWidth, h=slipImgEl.naturalHeight;
+  const target=1600; const scale=target/Math.max(w,h);
+  w=Math.round(w*scale); h=Math.round(h*scale);
+  c.width=w; c.height=h;
+  ctx.drawImage(slipImgEl,0,0,w,h);
+  const img=ctx.getImageData(0,0,w,h), p=img.data;
+  for(let i=0;i<p.length;i+=4){
+    let g=0.299*p[i]+0.587*p[i+1]+0.114*p[i+2];
+    g=(g-128)*1.35+128; g=g<0?0:g>255?255:g;
+    p[i]=p[i+1]=p[i+2]=g;
+  }
+  ctx.putImageData(img,0,0);
+  return c;
+}
+
+// ── Scan: QR + OCR ──
+btnScan.onclick=async e=>{
+  e.stopPropagation();
+  if(!slipImgEl) return;
+  if(typeof Tesseract==='undefined'){ toast('OCR engine ยังโหลดไม่เสร็จ ลองใหม่','err'); return; }
+  btnScan.disabled=true; btnRemove.disabled=true;
+  scanOverlay.classList.add('show'); scanBar.style.width='0%';
+
+  scanTxt.textContent='กำลังสแกน QR…';
+  let qrData=null;
+  try{ qrData=await decodeQR(); }catch{}
+  if(qrData){
+    const isUrl=/^https?:\/\//i.test(qrData);
+    document.getElementById('qrText').innerHTML='QR: '+(isUrl?`<a href="${esc(qrData)}" target="_blank" rel="noopener">${esc(qrData)}</a>`:esc(qrData));
+    document.getElementById('qrResult').classList.add('show');
+    const refMatch=qrData.match(/(?:ref|transRef|billerID)[=:]?\s*([A-Za-z0-9]{6,})/i)||qrData.match(/[?&]ref=([A-Za-z0-9]{6,})/i)||qrData.match(/\b([A-Za-z0-9]{12,})\b/);
+    if(refMatch) setField('fRef',refMatch[1]);
+  }
+
+  scanTxt.textContent='กำลังอ่านข้อความ (OCR)…';
+  let text='';
+  try{
+    const canvas=prepOcrCanvas();
+    const result=await Tesseract.recognize(canvas,'tha+eng',{
+      logger:m=>{
+        if(m.status==='recognizing text'){ scanBar.style.width=Math.round(m.progress*100)+'%'; }
+        else if(m.status==='loading language traineddata'||m.status==='initializing tesseract'){ scanTxt.textContent='กำลังโหลดตัวอ่าน OCR…'; }
+      }
+    });
+    text=result?.data?.text||'';
+  }catch(err){
+    scanOverlay.classList.remove('show'); btnScan.disabled=false; btnRemove.disabled=false;
+    toast('OCR ไม่สำเร็จ — กรอกเองได้เลย','err'); return;
+  }
+
+  const found=parseSlipText(text);
+  applyParsed(found);
+  document.getElementById('ocrBanner').classList.add('show');
+  scanOverlay.classList.remove('show'); btnScan.disabled=false; btnRemove.disabled=false;
+  const n=Object.values(found).filter(v=>v!=null && v!=='').length;
+  toast(n? `สแกนฟอร์มแล้ว พบ ${n} ช่อง ✓` : 'อ่านได้ไม่ชัด — กรุณากรอกเอง', n?'ok':'err');
+};
+
+// ── Parse OCR text (note is NOT auto-filled) ──
+function parseSlipText(raw){
+  const out={ amount:null, date:null, ref:null, type:null, desc:null };
+  if(!raw) return out;
+  const text=raw.replace(/\u00A0/g,' ');
+  const lines=text.split(/\n+/).map(l=>l.trim()).filter(Boolean);
+
+  const amtCandidates=[];
+  const numRe=/(\d{1,3}(?:,\d{3})*(?:\.\d{2})|\d+\.\d{2})/g;
+  lines.forEach(l=>{
+    const near=/จำนวน|บาท|amount|baht|THB/i.test(l);
+    let m; while((m=numRe.exec(l))!==null){
+      const val=parseFloat(m[1].replace(/,/g,''));
+      if(val>0) amtCandidates.push({val, near, isFee:/ธรรมเนียม|fee/i.test(l)});
+    }
+  });
+  let m2; while((m2=numRe.exec(text))!==null){ const val=parseFloat(m2[1].replace(/,/g,'')); if(val>0) amtCandidates.push({val,near:false,isFee:false}); }
+  const nonFee=amtCandidates.filter(c=>!c.isFee);
+  if(nonFee.length){ const near=nonFee.filter(c=>c.near); const pool=near.length?near:nonFee; out.amount=Math.max(...pool.map(c=>c.val)); }
+
+  const thMonths={'ม.ค.':1,'มกราคม':1,'ก.พ.':2,'กุมภาพันธ์':2,'มี.ค.':3,'มีนาคม':3,'เม.ย.':4,'เมษายน':4,'พ.ค.':5,'พฤษภาคม':5,'มิ.ย.':6,'มิถุนายน':6,'ก.ค.':7,'กรกฎาคม':7,'ส.ค.':8,'สิงหาคม':8,'ก.ย.':9,'กันยายน':9,'ต.ค.':10,'ตุลาคม':10,'พ.ย.':11,'พฤศจิกายน':11,'ธ.ค.':12,'ธันวาคม':12};
+  let dm=text.match(/(\d{1,2})\s*(ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\.|มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)\s*(\d{2,4})/);
+  if(dm){
+    const d=parseInt(dm[1],10), mo=thMonths[dm[2]], y=parseInt(dm[3],10);
+    let year=y<100?2500+y:y; if(year>2400)year-=543;
+    out.date=`${year}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  } else {
+    let dm2=text.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+    if(dm2){ let d=+dm2[1],mo=+dm2[2],y=+dm2[3]; let year=y<100?2500+y:y; if(year>2400)year-=543; out.date=`${year}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+    else { let dm3=text.match(/(20\d{2})[\-.](\d{1,2})[\-.](\d{1,2})/); if(dm3) out.date=`${dm3[1]}-${String(+dm3[2]).padStart(2,'0')}-${String(+dm3[3]).padStart(2,'0')}`; }
+  }
+
+  let refLine=lines.find(l=>/เลขที่รายการ|รายการ|ref|transaction/i.test(l));
+  let refStr=(refLine||text).match(/([A-Z0-9]{10,})/i);
+  if(refStr) out.ref=refStr[1];
+
+  if(/รับเงิน|เงินเข้า|received|โอนเงินรับ/i.test(text)) out.type='income';
+  else if(/โอนเงิน|เติมเงิน|จ่าย|ชำระ|payment|transfer/i.test(text)) out.type='expense';
+
+  if(/เติมเงิน/.test(text)) out.desc='เติมเงิน';
+  else if(/โอนเงิน/.test(text)) out.desc='โอนเงิน';
+  else { const head=lines[0]||''; if(head && head.length<=30) out.desc=head; }
+
+  return out;
+}
+
+function applyParsed(d){
+  if(d.type) setType(d.type);
+  if(d.amount!=null) setField('fAmt', d.amount);
+  if(d.date) setField('fDate', d.date);
+  if(d.desc) setField('fDesc', d.desc);
+  if(d.ref && !document.getElementById('fRef').value) setField('fRef', d.ref);
+  // note is intentionally NOT auto-filled
+}
+
+function setField(id,val){ const el=document.getElementById(id); el.value=val; el.classList.add('ocr-f'); el.addEventListener('input',()=>el.classList.remove('ocr-f'),{once:true}); }
+function clearOcrHighlight(){ ['fAmt','fDate','fDesc','fRef'].forEach(id=>document.getElementById(id).classList.remove('ocr-f')); }
+
+function setType(t){
+  curType=t;
+  document.getElementById('pillInc').className='type-pill'+(t==='income'?' a-inc':'');
+  document.getElementById('pillExp').className='type-pill'+(t==='expense'?' a-exp':'');
+  const row=document.getElementById('amtRow'), sym=document.getElementById('amtSym'), inp=document.getElementById('fAmt');
+  row.style.borderBottomColor=t==='income'?'var(--green)':'var(--red)';
+  sym.style.color=t==='income'?'var(--green)':'var(--red)';
+  inp.style.color=t==='income'?'var(--green)':'var(--red)';
+}
+function setFilter(f,el){ curFilter=f; document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on')); el.classList.add('on'); render(); }
+
+// ── Save (synchronous & reliable) ──
+document.getElementById('btnPost').onclick=postEntry;
+function postEntry(){
+  const desc=document.getElementById('fDesc').value.trim();
+  const amt=parseFloat(document.getElementById('fAmt').value);
+  const date=document.getElementById('fDate').value;
+  if(!desc){ toast('กรุณากรอกรายการ','err'); return; }
+  if(!amt||amt<=0){ toast('กรุณากรอกจำนวนเงิน','err'); return; }
+  if(!date){ toast('กรุณาเลือกวันที่','err'); return; }
+
+  const entry={ id:Date.now(), type:curType, desc, amount:amt, date,
+    currency:document.getElementById('fCur').value, category:document.getElementById('fCat').value,
+    method:document.getElementById('fMethod').value, ref:document.getElementById('fRef').value.trim(),
+    note:document.getElementById('fNote').value.trim(), img:slipThumb||null };
+
+  entries.unshift(entry);
+  if(!save()){
+    entry.img=null;
+    if(!save()){ entries.shift(); toast('พื้นที่จัดเก็บเต็ม','err'); return; }
+    toast('บันทึกแล้ว (ไม่เก็บรูป — พื้นที่เต็ม)','ok'); afterSave(); return;
+  }
+  toast('บันทึกแล้ว ✓','ok'); afterSave();
+
+  // ── auto-send to Sheet ──
+  if(getSheetUrl() && autoSendOn()){
+    sendToSheet([sheetRow(entry)]).then(ok=>{
+      if(ok){ entry.synced=true; save(); render(); toast('บันทึก + ส่งไป Sheet แล้ว ✓','ok'); }
+    });
+  }
+}
+function autoSendOn(){ return localStorage.getItem('fs9_autoSend')==='1'; }
+function save(){ try{ localStorage.setItem('fs9',JSON.stringify(entries)); return true; }catch{ return false; } }
+function afterSave(){
+  const last=entries[0];
+  if(last){ const d=new Date(last.date+'T00:00:00'); vDate=new Date(d.getFullYear(),d.getMonth(),1); updateMonth(); }
+  render(); clearForm();
+}
+
+function clearForm(){
+  ['fAmt','fDesc','fRef','fNote'].forEach(id=>{const e=document.getElementById(id);e.value='';e.classList.remove('ocr-f');});
+  document.getElementById('fDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('fCat').value=''; document.getElementById('fCur').value='฿';
+  document.getElementById('amtSym').textContent='฿';
+  resetImage(); setType('expense');
+}
+function deleteEntry(id){ entries=entries.filter(e=>e.id!==id); save(); render(); }
+function openLightbox(src){ document.getElementById('lbImg').src=src; document.getElementById('lightbox').classList.add('show'); }
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('show'); }
+
+function render(){
+  const yr=vDate.getFullYear(), mo=vDate.getMonth();
+  const mE=entries.filter(e=>{const d=new Date(e.date+'T00:00:00');return d.getFullYear()===yr&&d.getMonth()===mo;});
+  const inc=mE.filter(e=>e.type==='income').reduce((s,e)=>s+e.amount,0);
+  const exp=mE.filter(e=>e.type==='expense').reduce((s,e)=>s+e.amount,0);
+  const bal=inc-exp; const sym=mE[0]?.currency||'฿';
+  const fmt=n=>sym+n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('sInc').textContent=fmt(inc);
+  document.getElementById('sExp').textContent=fmt(exp);
+  const bel=document.getElementById('sBal'); bel.textContent=(bal<0?'-':'')+fmt(Math.abs(bal));
+  bel.style.color=bal<0?'var(--red)':bal>0?'var(--green)':'var(--ink)';
+
+  const filt=curFilter==='all'?mE:mE.filter(e=>e.type===curFilter);
+  const list=document.getElementById('eList');
+  if(!filt.length){ list.innerHTML='<div class="empty">ยังไม่มีรายการในเดือนนี้</div>'; return; }
+  const byD={}; filt.forEach(e=>{if(!byD[e.date])byD[e.date]=[];byD[e.date].push(e);});
+  let html='';
+  Object.keys(byD).sort((a,b)=>b.localeCompare(a)).forEach(date=>{
+    const d=new Date(date+'T00:00:00');
+    html+=`<div class="dg-label">${d.toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'})}</div>`;
+    byD[date].forEach(e=>{
+      const sign=e.type==='income'?'+':'−'; const s=e.currency||'฿';
+      const thumb=e.img?`<img class="entry-thumb" src="${e.img}" onclick="openLightbox('${e.img.replace(/'/g,"\\'")}')"/>`:'';
+      html+=`<div class="entry ${e.type}">${thumb}
+        <div class="entry-info">
+          <div class="entry-desc">${esc(e.desc)}</div>
+          <div class="entry-tags">${e.category?`<span class="etag">${esc(e.category)}</span>`:''}<span class="etag">${esc(e.method||'')}</span>${e.ref?`<span class="etag">#${esc(e.ref)}</span>`:''}</div>
+          ${e.note?`<div class="entry-note">${esc(e.note)}</div>`:''}
+        </div>
+        <div class="entry-right"><div class="eamount">${sign}${s}${e.amount.toLocaleString('th-TH',{minimumFractionDigits:2})}</div>
+        ${ getSheetUrl() ? (e.synced?'<span class="entry-synced">☁ ส่งแล้ว</span>':`<span class="entry-unsynced" onclick="syncOne(${e.id})">↑ ส่งไป Sheet</span>`) : '' }
+        <button class="edel" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    });
+  });
+  list.innerHTML=html;
+}
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+let _tt; function toast(msg,type=''){ const t=document.getElementById('toastEl'); t.textContent=msg; t.className='toast show'+(type?' '+type:''); clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2600); }
+
+// ════════ Google Sheet sync ════════
+const GS_CODE = `function doPost(e) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(['ID','วันที่','ประเภท','รายการ','จำนวน','สกุลเงิน','หมวดหมู่','ช่องทาง','เลขอ้างอิง','หมายเหตุ']);
+    }
+    var data = JSON.parse(e.postData.contents);
+    var rows = data.rows || [data];
+    rows.forEach(function(r) {
+      sheet.appendRow([r.id, r.date, r.type, r.desc, r.amount, r.currency, r.category, r.method, r.ref, r.note]);
+    });
+    return ContentService.createTextOutput(JSON.stringify({ok:true, added:rows.length, total:sheet.getLastRow()-1}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ok:false, error:String(err)}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// เปิด URL นี้ในเบราว์เซอร์เพื่อทดสอบว่า deploy สำเร็จ และดูจำนวนแถวในชีต
+function doGet(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  return ContentService.createTextOutput(JSON.stringify({
+    ok: true, sheetName: sheet.getName(), rows: Math.max(0, sheet.getLastRow()-1)
+  })).setMimeType(ContentService.MimeType.JSON);
+}`;
+
+function getSheetUrl(){ return localStorage.getItem('fs9_sheetUrl') || ''; }
+function openSheetSettings(){
+  document.getElementById('sheetUrl').value = getSheetUrl();
+  document.getElementById('autoSendChk').checked = autoSendOn();
+  document.getElementById('gsCode').textContent = GS_CODE;
+  document.getElementById('sheetModal').classList.add('show');
+}
+function closeSheetSettings(){ document.getElementById('sheetModal').classList.remove('show'); }
+function saveSheetUrl(){
+  const url=document.getElementById('sheetUrl').value.trim();
+  if(url && !/^https:\/\/script\.google\.com\/macros\/s\//.test(url)){ toast('URL ไม่ถูกต้อง','err'); return; }
+  localStorage.setItem('fs9_sheetUrl', url);
+  localStorage.setItem('fs9_autoSend', document.getElementById('autoSendChk').checked?'1':'0');
+  toast(document.getElementById('autoSendChk').checked?'บันทึก + เปิดส่งอัตโนมัติ ✓':'บันทึก URL แล้ว ✓','ok');
+  closeSheetSettings(); render();
+}
+function copyGsCode(){
+  navigator.clipboard?.writeText(GS_CODE).then(()=>toast('คัดลอกโค้ดแล้ว ✓','ok')).catch(()=>toast('คัดลอกไม่ได้','err'));
+}
+
+// Try a real (readable) request first; if CORS blocks it, fall back to no-cors (fire-and-forget)
+async function sendToSheet(rows){
+  const url=getSheetUrl();
+  if(!url){ toast('ยังไม่ได้ตั้งค่า Sheet URL','err'); openSheetSettings(); return false; }
+  // attempt 1: readable response
+  try{
+    const res=await fetch(url,{ method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ rows }) });
+    const txt=await res.text();
+    let data; try{ data=JSON.parse(txt); }catch{ data=null; }
+    if(data && data.ok){ return true; }
+    if(data && data.ok===false){ toast('Sheet error: '+data.error,'err'); return false; }
+    // got a response but not JSON (e.g. Google login page) → not deployed for "Anyone"
+    toast('ตอบกลับผิดปกติ — ตรวจ Deploy ว่าตั้ง "Anyone"','err');
+    return false;
+  }catch(err){
+    // attempt 2: no-cors fire-and-forget (can't confirm)
+    try{
+      await fetch(url,{ method:'POST', mode:'no-cors',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({ rows }) });
+      toast('ส่งแล้ว (ยืนยันไม่ได้ — เช็กใน Sheet)','ok');
+      return true;
+    }catch(err2){ toast('ส่งไม่สำเร็จ: '+(err2.message||err2),'err'); return false; }
+  }
+}
+
+async function syncOne(id){
+  const e=entries.find(x=>x.id===id); if(!e) return;
+  toast('กำลังส่งไป Sheet…');
+  const ok=await sendToSheet([sheetRow(e)]);
+  if(ok){ e.synced=true; save(); render(); toast('ส่งไป Sheet แล้ว ✓','ok'); }
+}
+
+document.getElementById('btnSyncAll').onclick=async ()=>{
+  const url=getSheetUrl();
+  if(!url){ toast('ยังไม่ได้ตั้งค่า Sheet URL','err'); openSheetSettings(); return; }
+  const pending=entries.filter(e=>!e.synced);
+  if(!pending.length){ toast('ไม่มีรายการใหม่ที่ต้องส่ง','ok'); return; }
+  const btn=document.getElementById('btnSyncAll'); btn.disabled=true; btn.textContent='⏳ กำลังส่ง…';
+  const ok=await sendToSheet(pending.map(sheetRow));
+  if(ok){ pending.forEach(e=>e.synced=true); save(); render(); toast(`ส่ง ${pending.length} รายการแล้ว ✓`,'ok'); }
+  btn.disabled=false; btn.textContent='☁ ซิงค์ทั้งหมด';
+};
+
+function sheetRow(e){
+  return { id:e.id, date:e.date, type:e.type==='income'?'รายรับ':'รายจ่าย', desc:e.desc,
+    amount:e.amount, currency:e.currency, category:e.category, method:e.method, ref:e.ref, note:e.note };
+}
+
+document.getElementById('btnTestSheet').onclick=async ()=>{
+  const url=document.getElementById('sheetUrl').value.trim();
+  if(!url){ toast('ใส่ URL ก่อน','err'); return; }
+  localStorage.setItem('fs9_sheetUrl',url);
+  const btn=document.getElementById('btnTestSheet'); btn.disabled=true; btn.textContent='กำลังเช็ก…';
+  // 1) GET = ตรวจว่า deploy ใช้ได้ + อ่านจำนวนแถวปัจจุบัน
+  try{
+    const res=await fetch(url,{method:'GET'});
+    const txt=await res.text();
+    let info; try{ info=JSON.parse(txt); }catch{ info=null; }
+    if(info && info.ok){
+      // 2) ส่งแถวทดสอบจริง
+      await sendToSheet([sheetRow({id:Date.now(),date:new Date().toISOString().split('T')[0],type:'expense',desc:'ทดสอบการเชื่อมต่อ',amount:0,currency:'฿',category:'',method:'ทดสอบ',ref:'',note:'test'})]);
+      toast(`เชื่อมต่อสำเร็จ! ชีต "${info.sheetName}" มี ${info.rows} แถว — ส่งแถวทดสอบแล้ว ✓`,'ok');
+    } else {
+      toast('เชื่อมต่อไม่ได้ — URL อาจผิด หรือยังไม่ได้ตั้ง Deploy เป็น "Anyone"','err');
+    }
+  }catch(err){
+    toast('เรียก URL ไม่ได้: '+(err.message||err)+' (ลองเปิด URL ในแท็บใหม่ดู)','err');
+  }
+  btn.disabled=false; btn.textContent='ทดสอบส่ง';
+};
+
+// ════════ Export / Import ════════
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(entries,null,2)],{type:'application/json'});
+  downloadBlob(blob, `finance-slip-backup-${dateStamp()}.json`);
+  toast('สำรองข้อมูลแล้ว ✓','ok');
+}
+function exportCSV(){
+  const head=['วันที่','ประเภท','รายการ','จำนวน','สกุลเงิน','หมวดหมู่','ช่องทาง','เลขอ้างอิง','หมายเหตุ'];
+  const rows=entries.map(e=>[e.date, e.type==='income'?'รายรับ':'รายจ่าย', e.desc, e.amount, e.currency, e.category, e.method, e.ref, e.note]
+    .map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(','));
+  const csv='\uFEFF'+[head.join(','),...rows].join('\n'); // BOM for Thai in Excel
+  downloadBlob(new Blob([csv],{type:'text/csv'}), `finance-slip-${dateStamp()}.csv`);
+  toast('ส่งออก CSV แล้ว ✓','ok');
+}
+function downloadBlob(blob,name){
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function dateStamp(){ const d=new Date(); return d.toISOString().split('T')[0]; }
+
+document.getElementById('importFile').onchange=e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!Array.isArray(data)) throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
+      const existing=new Set(entries.map(x=>x.id));
+      const merged=[...entries];
+      let added=0;
+      data.forEach(d=>{ if(d && d.id && !existing.has(d.id)){ merged.push(d); added++; } });
+      merged.sort((a,b)=>b.id-a.id);
+      entries=merged; save(); render();
+      toast(`นำเข้าแล้ว เพิ่ม ${added} รายการ ✓`,'ok');
+    }catch(err){ toast('นำเข้าไม่สำเร็จ: '+(err.message||err),'err'); }
+    e.target.value='';
+  };
+  r.readAsText(file);
+};
+
+document.getElementById('fAmt').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('fDesc').focus();});
+document.getElementById('sheetModal').addEventListener('click',e=>{ if(e.target.id==='sheetModal') closeSheetSettings(); });
+
+// register service worker (PWA offline support)
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+{
+  "_meta": {
+    "name": "Finance Slip — Category Keyword Dataset (Thai)",
+    "version": "1.0",
+    "updated": "2026-06-09",
+    "note": "ใช้คัดแยกหมวดค่าใช้จ่ายจากชื่อร้าน/บริการบนสลิป. keyword ไม่สนตัวพิมพ์เล็ก-ใหญ่. เพิ่ม/แก้ได้ตามต้องการแล้วนำเข้าในแอป (Admin ▸ นำเข้า keyword)."
+  },
+  "categories": [
+    {
+      "cat": "อาหาร & เครื่องดื่ม",
+      "keywords": [
+        "STARBUCKS","สตาร์บัคส์","CAFE AMAZON","AMAZON","คาเฟ่ อเมซอน","COFFEE","กาแฟ","CAFE","คาเฟ่",
+        "MCDONALD","แมคโดนัล","MCDONALDS","KFC","เคเอฟซี","BURGER KING","เบอร์เกอร์","PIZZA","พิซซ่า","PIZZA HUT","THE PIZZA",
+        "DOMINO","SUBWAY","SUKISHI","สุกี้","MK","เอ็มเค","SHABU","ชาบู","HOTPOT","YAYOI","ยาโยอิ","FUJI","ฟูจิ",
+        "OISHI","โออิชิ","ZEN","KATSU","BONCHON","บอนชอน","TEXAS","CHESTER","เชสเตอร์","SWENSEN","สเวนเซ่นส์",
+        "DAIRY QUEEN","แดรี่ควีน","AFTER YOU","อาฟเตอร์ยู","BAKERY","เบเกอรี่","S&P","เอสแอนด์พี","AU BON PAIN",
+        "ร้านอาหาร","ภัตตาคาร","FOOD","อาหาร","BBQ","บาร์บีคิว","BUFFET","บุฟเฟ่ต์","DESSERT","ขนม","ก๋วยเตี๋ยว","ข้าวมันไก่",
+        "FOODPANDA","ฟู้ดแพนด้า","ROBINSON KITCHEN","TRUE COFFEE","INTHANIN","อินทนิล","PUNTHAI","พันธุ์ไทย","CHATIME","ชาตรามือ"
+      ]
+    },
+    {
+      "cat": "ของชำ / ซุปเปอร์มาร์เก็ต",
+      "keywords": [
+        "7-ELEVEN","7 ELEVEN","SEVEN","เซเว่น","เซเว่นอีเลฟเว่น","CP ALL","ALL CAFE",
+        "LOTUS","โลตัส","LOTUS'S","TESCO","เทสโก้","BIG C","บิ๊กซี","BIGC","MINI BIG C","MAKRO","แม็คโคร","แมคโคร",
+        "TOPS","ท็อปส์","TOPS DAILY","VILLA MARKET","วิลล่า","GOURMET MARKET","กูร์เมต์","FOODLAND","ฟู้ดแลนด์",
+        "FAMILYMART","แฟมิลี่มาร์ท","FAMILY MART","LAWSON","ลอว์สัน","CJ","ซีเจ","CJ EXPRESS","MAX VALU","แม็กซ์แวลู",
+        "GO WHOLESALE","FRESHMART","มินิมาร์ท","ร้านสะดวกซื้อ","ตลาด","MARKET","SUPERMARKET","ซุปเปอร์มาร์เก็ต"
+      ]
+    },
+    {
+      "cat": "การเดินทาง",
+      "keywords": [
+        "GRAB","แกร็บ","GRABTAXI","GRAB CAR","BOLT","โบลท์","LINE MAN","LINEMAN","ไลน์แมน","ROBINHOOD","โรบินฮู้ด",
+        "TAXI","แท็กซี่","TUKTUK","ตุ๊กตุ๊ก","VANPOOL","BTS","รถไฟฟ้า","MRT","เอ็มอาร์ที","ARL","แอร์พอร์ตลิงก์",
+        "PTT","ปตท","PTT STATION","BANGCHAK","บางจาก","SHELL","เชลล์","ESSO","เอสโซ่","CALTEX","คาลเท็กซ์","SUSCO","ซัสโก้",
+        "น้ำมัน","FUEL","GAS","เติมน้ำมัน","EXPRESSWAY","ทางด่วน","EASY PASS","M-FLOW","MFLOW","ค่าทางด่วน","ที่จอดรถ","PARKING",
+        "AIRASIA","แอร์เอเชีย","NOK AIR","นกแอร์","THAI AIRWAYS","การบินไทย","BANGKOK AIRWAYS","VIABUS","รถทัวร์","BUS","รถเมล์"
+      ]
+    },
+    {
+      "cat": "ค่าสาธารณูปโภค",
+      "keywords": [
+        "การไฟฟ้า","MEA","การไฟฟ้านครหลวง","PEA","การไฟฟ้าส่วนภูมิภาค","ไฟฟ้า","ELECTRIC","ค่าไฟ",
+        "การประปา","ประปา","WATER","ค่าน้ำ","WATERWORKS","MWA","PWA",
+        "TRUE","ทรู","TRUEMOVE","ทรูมูฟ","AIS","เอไอเอส","ADVANCE INFO","DTAC","ดีแทค","NT","TOT","CAT","3BB","ทรีบีบี",
+        "อินเทอร์เน็ต","INTERNET","WIFI","มือถือ","โทรศัพท์","ค่าโทร","BILL PAYMENT","ชำระบิล","ค่าบริการ"
+      ]
+    },
+    {
+      "cat": "สุขภาพ / ยา",
+      "keywords": [
+        "โรงพยาบาล","HOSPITAL","รพ.","คลินิก","CLINIC","PHARMACY","ร้านยา","เภสัช",
+        "WATSONS","วัตสัน","BOOTS","บู๊ทส์","FASCINO","ฟาสซิโน","PURE","เพียว","EVE AND BOY","MATSUMOTO",
+        "BANGKOK HOSPITAL","กรุงเทพ","BUMRUNGRAD","บำรุงราษฎร์","SAMITIVEJ","สมิติเวช","BNH","PHYATHAI","พญาไท",
+        "ทันตกรรม","DENTAL","หมอฟัน","DENTIST","แล็บ","LAB","ตรวจสุขภาพ","วัคซีน","VACCINE","ยา","MEDICINE","แว่นตา","หอแว่น"
+      ]
+    },
+    {
+      "cat": "ช้อปปิ้ง",
+      "keywords": [
+        "SHOPEE","ช้อปปี้","ช็อปปี้","LAZADA","ลาซาด้า","TIKTOK SHOP","ติ๊กต็อก",
+        "UNIQLO","ยูนิโคล่","H&M","ZARA","MUJI","มูจิ","SUPERSPORTS","ADIDAS","NIKE","CHARLES & KEITH",
+        "CENTRAL","เซ็นทรัล","ROBINSON","โรบินสัน","THE MALL","เดอะมอลล์","SIAM PARAGON","สยามพารากอน","EMPORIUM","ICONSIAM","ไอคอนสยาม",
+        "POWER BUY","เพาเวอร์บาย","BANANA IT","BANANA","JIB","ADVICE","COM7","IT CITY","STUDIO 7",
+        "IKEA","อิเกีย","HOMEPRO","โฮมโปร","DOHOME","ดูโฮม","THAIWATSADU","ไทวัสดุ","GLOBAL HOUSE","INDEX LIVING","ไดโซะ","DAISO","MINISO"
+      ]
+    },
+    {
+      "cat": "บันเทิง",
+      "keywords": [
+        "NETFLIX","เน็ตฟลิกซ์","SPOTIFY","สปอติฟาย","YOUTUBE","YOUTUBE PREMIUM","DISNEY","ดิสนีย์","HBO","HBO GO","HBO MAX",
+        "VIU","วิว","WETV","IQIYI","อ้ายฉีอี้","PRIME VIDEO","APPLE MUSIC","APPLE TV","JOOX",
+        "MAJOR","เมเจอร์","SF CINEMA","เอสเอฟ","โรงหนัง","CINEMA","หนัง",
+        "STEAM","สตีม","GARENA","การีน่า","PLAYSTATION","XBOX","NINTENDO","GAME","เกม","TOPUP เกม","คอนเสิร์ต","CONCERT","TICKET"
+      ]
+    },
+    {
+      "cat": "เติมเงิน / E-Wallet",
+      "keywords": [
+        "TRUEMONEY","TRUE MONEY","ทรูมันนี่","TRUEMONEY WALLET","TRUE WALLET","WALLET","วอลเล็ท",
+        "RABBIT","แรบบิท","RABBIT LINE PAY","LINE PAY","ไลน์เพย์","SHOPEEPAY","ช้อปปี้เพย์","DOLFIN","ดอลฟิน","AIRPAY",
+        "พร้อมเพย์","PROMPTPAY","TOPUP","เติมเงิน","เติมเกม","GIFT CARD","บัตรเงินสด","STARBUCKS CARD"
+      ]
+    },
+    {
+      "cat": "ค่าเช่า / ที่พัก",
+      "keywords": [
+        "ค่าเช่า","RENT","RENTAL","คอนโด","CONDO","APARTMENT","อพาร์ทเมนท์","หอพัก","DORMITORY","DORM","บ้านเช่า",
+        "AGODA","อโกด้า","BOOKING","BOOKING.COM","HOTEL","โรงแรม","AIRBNB","RESORT","รีสอร์ท","HOSTEL","เกสต์เฮาส์",
+        "ค่าส่วนกลาง","นิติบุคคล","MANAGEMENT FEE","ค่าน้ำค่าไฟหอ"
+      ]
+    },
+    {
+      "cat": "การศึกษา",
+      "keywords": [
+        "มหาวิทยาลัย","UNIVERSITY","โรงเรียน","SCHOOL","วิทยาลัย","COLLEGE","สถาบัน","INSTITUTE",
+        "ค่าเทอม","TUITION","คอร์ส","COURSE","ติว","เรียนพิเศษ","UDEMY","COURSERA","SKILLLANE","SKOOLDIO","DATACAMP",
+        "หนังสือ","BOOK","SE-ED","ซีเอ็ด","NAIIN","นายอินทร์","B2S","KINOKUNIYA","เครื่องเขียน","STATIONERY"
+      ]
+    },
+    {
+      "cat": "ค่าสาธารณูปโภค",
+      "keywords": ["ค่าเช่าเซิร์ฟเวอร์","HOSTING","DOMAIN","GOOGLE","MICROSOFT","ICLOUD","DROPBOX","ADOBE","CANVA","NOTION","SUBSCRIPTION","ค่าสมาชิก"]
+    }
+  ]
+}
