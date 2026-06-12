@@ -1,5 +1,5 @@
 // Finance Slip — service worker
-const CACHE = 'finance-slip-v7';
+const CACHE = 'finance-slip-v8';
 const SHELL = [
   './',
   'index.html',
