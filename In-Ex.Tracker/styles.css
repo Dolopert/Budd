@@ -197,7 +197,7 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--ink);
 .sw-bg .bg-lbl  { color:#fff; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:700; }
 
 /* the card itself sits on top */
-.rcard { background:#1e2430; border-radius:16px; padding:14px 16px; display:flex; align-items:center; gap:12px; will-change:transform; cursor:pointer; position:relative; z-index:1; user-select:none; }
+.rcard { background:#1e2430; border-radius:16px; padding:14px 16px; display:flex; align-items:center; gap:12px; will-change:transform; cursor:pointer; position:relative; z-index:1; user-select:none; touch-action:pan-y; }
 .rcard .rc-ico { width:44px; height:44px; border-radius:50%; background:#2c3340; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
 .rcard .rc-mid { flex:1; min-width:0; }
 .rcard .rc-title { color:#fff; font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

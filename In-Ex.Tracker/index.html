@@ -241,7 +241,7 @@
     <span id="reviewProgress">เหลือ 0 ใบ</span>
     <button class="review-close" onclick="closeReview()">✕ ปิด</button>
   </div>
-  <div class="review-list" id="reviewList"></div>
+  <div class="review-list" id="reviewList" style="scrollbar-width:none;-ms-overflow-style:none"></div>
 </div>
 
 <!-- Edit modal -->
@@ -653,9 +653,9 @@ function attachRowSwipe(card, wrap, onSave, onDel, onTap){
   card.addEventListener('touchstart',e=>{ const t=e.touches[0]; startX=t.clientX; startY=t.clientY; down(t.clientX); },{passive:true});
   card.addEventListener('touchmove', e=>{
     const t=e.touches[0]; const dx=t.clientX-startX, dy=t.clientY-startY;
-    if(Math.abs(dx)>6 || Math.abs(dy)>6) moved=true;   // ขยับจริง = ไม่ใช่ tap (กันเปิด edit ผิด)
-    if(Math.abs(dx)>Math.abs(dy)) move(t.clientX,t.clientY);
-  },{passive:true});
+    if(Math.abs(dx)>6 || Math.abs(dy)>6) moved=true;
+    if(Math.abs(dx)>Math.abs(dy)){ e.preventDefault(); move(t.clientX,t.clientY); }
+  },{passive:false});
   card.addEventListener('touchend',  up);
   card.addEventListener('mousedown', e=>down(e.clientX));
   window.addEventListener('mousemove',e=>{ if(dragging) move(e.clientX,e.clientY); });
@@ -838,9 +838,8 @@ function parseSlipText(raw){
     else { let dm3=text.match(/(20\d{2})[\-.](\d{1,2})[\-.](\d{1,2})/); if(dm3) out.date=`${dm3[1]}-${String(+dm3[2]).padStart(2,'0')}-${String(+dm3[3]).padStart(2,'0')}`; }
   }
 
-  let refLine=lines.find(l=>/เลขที่รายการ|รายการ|ref|transaction/i.test(l));
-  let refStr=(refLine||text).match(/([A-Z0-9]{10,})/i);
-  if(refStr) out.ref=refStr[1];
+  let refLine=lines.find(l=>/เลขที่รายการ|เลขอ้างอิง|ref\b|transaction\s*id/i.test(l));
+  if(refLine){ const m=refLine.match(/([A-Z0-9]{8,})/i); if(m) out.ref=m[1]; }
 
   if(/รับเงิน|เงินเข้า|received|โอนเงินรับ/i.test(text)) out.type='income';
   else if(/โอนเงิน|เติมเงิน|จ่าย|ชำระ|payment|transfer/i.test(text)) out.type='expense';
