@@ -59,11 +59,9 @@
       <div class="scan-overlay" id="scanOverlay">
         <div class="spinner"></div>
         <div class="scan-txt" id="scanTxt">กำลังเตรียม…</div>
-        <div id="batchProgressWrap" style="display:none;width:100%;margin-bottom:4px">
-          <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:4px">
-            <span>ความคืบหน้าทั้งหมด</span><span id="batchProgressLabel">0 / 0</span>
-          </div>
-          <div class="scan-bar"><div class="scan-bar-fill" id="batchBar"></div></div>
+        <div id="batchProgressWrap" style="display:none;width:100%;margin-top:8px">
+          <div class="scan-bar" style="width:100%"><div class="scan-bar-fill" id="batchBar"></div></div>
+          <div id="batchProgressLabel" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-align:center;margin-top:4px">0%</div>
         </div>
       </div>
     </div>
@@ -520,21 +518,22 @@ async function runBatch(files){
   const batchLabel=document.getElementById('batchProgressLabel');
   batchWrap.style.display='block';
   batchBar.style.width='0%';
-  batchLabel.textContent=`0 / ${files.length}`;
+  batchLabel.textContent='0%';
+
+  const setPct=p=>{ const v=Math.round(p); batchBar.style.width=v+'%'; batchLabel.textContent=v+'%'; };
 
   let i=0;
   for(const f of files){
     i++;
     scanTxt.textContent=`กำลังอ่านสลิป ${i}/${files.length}…`;
-    batchLabel.textContent=`${i-1} / ${files.length}`;
-    batchBar.style.width=Math.round(((i-1)/files.length)*100)+'%';
+    setPct(((i-1)/files.length)*100);
     try{
       const {img,dataUrl}=await loadImageEl(f);
       const qr=qrDecode(img);
       let text='';
       try{ const res=await Tesseract.recognize(makeOcrCanvas(img),'tha+eng',{ logger:m=>{
         if(m.status==='recognizing text'){
-          batchBar.style.width=Math.round((((i-1)+m.progress)/files.length)*100)+'%';
+          setPct(((i-1)+m.progress)/files.length*100);
         }
       }}); text=res?.data?.text||''; }catch{}
       const found=parseSlipText(text);
@@ -548,7 +547,7 @@ async function runBatch(files){
       reviewQueue.push({ id:'rq'+Date.now()+Math.random(), found, thumb:makeThumbFrom(img), dataUrl, duplicate:isDup });
     }catch{}
   }
-  batchBar.style.width='100%'; batchLabel.textContent=`${files.length} / ${files.length}`;
+  setPct(100);
   setTimeout(()=>{ scanOverlay.classList.remove('show'); batchWrap.style.display='none'; imgZone.style.minHeight=''; resetImage();
     if(!reviewQueue.length){ toast('อ่านสลิปไม่สำเร็จ','err'); return; }
     openReview();
