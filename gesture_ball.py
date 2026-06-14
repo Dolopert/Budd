@@ -114,15 +114,13 @@ def main():
     # Ball state
     bx, by = float(w // 2), float(h // 2)
     vx, vy = 0.0, 0.0
-    radius = 40
+    radius = 40.0
     color_idx = 0
     ball_color = COLORS[color_idx]
     frozen = False
     gravity = 0.5
     bounce_damping = 0.75
     gesture_cooldown = 0
-    pinch_base_dist = None
-    pinch_base_radius = 40
 
     prev_time = time.time()
     frame_ts = 0
@@ -156,7 +154,6 @@ def main():
             if gesture == "fist":
                 frozen = True
                 vx, vy = 0, 0
-                pinch_base_dist = None
 
             elif gesture in ("open", "point"):
                 frozen = False
@@ -164,32 +161,23 @@ def main():
                 by += (iy - by) * 0.25
                 vx = (ix - bx) * 0.1
                 vy = (iy - by) * 0.1
-                pinch_base_dist = None
 
             elif gesture == "peace" and gesture_cooldown == 0:
                 frozen = False
                 vy = -18
                 vx = random.uniform(-4, 4)
                 gesture_cooldown = 20
-                pinch_base_dist = None
 
             elif gesture == "thumbs_up" and gesture_cooldown == 0:
                 color_idx = (color_idx + 1) % len(COLORS)
                 ball_color = COLORS[color_idx]
                 gesture_cooldown = 30
-                pinch_base_dist = None
 
             elif gesture == "pinch":
                 d = dist(lm[THUMB_TIP], lm[INDEX_TIP])
-                if pinch_base_dist is None:
-                    pinch_base_dist = d
-                    pinch_base_radius = radius
-                else:
-                    scale = d / max(pinch_base_dist, 1e-6)
-                    radius = int(max(10, min(120, pinch_base_radius * scale)))
-
-            else:
-                pinch_base_dist = None
+                # Map distance directly to target radius, then lerp
+                target = max(10.0, min(120.0, d * 600))
+                radius += (target - radius) * 0.15
 
         # Physics
         if not frozen:
@@ -211,9 +199,10 @@ def main():
         ibx, iby = int(bx), int(by)
 
         # Draw ball
-        cv2.circle(frame, (ibx + 6, iby + 6), radius, (30, 30, 30), -1)
-        cv2.circle(frame, (ibx, iby), radius, ball_color, -1)
-        cv2.circle(frame, (ibx - radius // 4, iby - radius // 4), radius // 5, (255, 255, 255), -1)
+        irad = int(radius)
+        cv2.circle(frame, (ibx + 6, iby + 6), irad, (30, 30, 30), -1)
+        cv2.circle(frame, (ibx, iby), irad, ball_color, -1)
+        cv2.circle(frame, (ibx - irad // 4, iby - irad // 4), max(1, irad // 5), (255, 255, 255), -1)
 
         if index_tip:
             cv2.circle(frame, index_tip, 10, (0, 255, 255), 2)
@@ -236,7 +225,7 @@ def main():
 
         cv2.putText(frame, f"Gesture: {label}", (12, 36), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 200), 2)
         cv2.putText(frame, f"FPS: {fps:.0f}", (12, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (180, 180, 180), 1)
-        cv2.putText(frame, f"Ball R: {radius}", (12, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (180, 180, 180), 1)
+        cv2.putText(frame, f"Ball R: {irad}", (12, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (180, 180, 180), 1)
         if frozen:
             cv2.putText(frame, "[ FROZEN ]", (12, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (80, 80, 255), 2)
 
