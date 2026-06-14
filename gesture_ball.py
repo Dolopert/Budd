@@ -9,75 +9,110 @@ Hand Gesture Ball Control
 
 import cv2
 import mediapipe as mp
+from mediapipe.tasks import python as mp_python
+from mediapipe.tasks.python import vision as mp_vision
 import math
 import random
 import time
+import os
+import urllib.request
 
-mp_hands = mp.solutions.hands
-mp_draw = mp.solutions.drawing_utils
+# --- Model download ---
+MODEL_PATH = os.path.join(os.path.expanduser("~"), "hand_landmarker.task")
+MODEL_URL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
 
-# --- Gesture detection helpers ---
+def ensure_model():
+    if not os.path.exists(MODEL_PATH):
+        print("Downloading hand landmarker model (~8 MB)...")
+        urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+        print("Model downloaded.")
+
+# --- Landmark indices (MediaPipe 21-point hand) ---
+WRIST = 0
+THUMB_TIP, THUMB_IP = 4, 3
+INDEX_TIP, INDEX_PIP = 8, 6
+MIDDLE_TIP, MIDDLE_PIP = 12, 10
+RING_TIP, RING_PIP = 16, 14
+PINKY_TIP, PINKY_PIP = 20, 18
+
+# Connections to draw
+HAND_CONNECTIONS = [
+    (0,1),(1,2),(2,3),(3,4),
+    (0,5),(5,6),(6,7),(7,8),
+    (5,9),(9,10),(10,11),(11,12),
+    (9,13),(13,14),(14,15),(15,16),
+    (13,17),(17,18),(18,19),(19,20),
+    (0,17),
+]
+
+def draw_landmarks(frame, lm, w, h):
+    pts = [(int(l.x * w), int(l.y * h)) for l in lm]
+    for a, b in HAND_CONNECTIONS:
+        cv2.line(frame, pts[a], pts[b], (0, 180, 255), 2)
+    for x, y in pts:
+        cv2.circle(frame, (x, y), 4, (80, 255, 80), -1)
+
+# --- Gesture helpers ---
 
 def finger_up(lm, tip, pip):
     return lm[tip].y < lm[pip].y
-
-def count_fingers_up(lm):
-    fingers = [
-        finger_up(lm, 8, 6),   # index
-        finger_up(lm, 12, 10),  # middle
-        finger_up(lm, 16, 14),  # ring
-        finger_up(lm, 20, 18),  # pinky
-    ]
-    # thumb: check x-axis (right hand)
-    thumb_up = lm[4].x < lm[3].x
-    return thumb_up, fingers
 
 def dist(a, b):
     return math.hypot(a.x - b.x, a.y - b.y)
 
 def classify_gesture(lm):
-    thumb_up, fingers = count_fingers_up(lm)
-    idx, mid, ring, pink = fingers
+    idx  = finger_up(lm, INDEX_TIP, INDEX_PIP)
+    mid  = finger_up(lm, MIDDLE_TIP, MIDDLE_PIP)
+    ring = finger_up(lm, RING_TIP, RING_PIP)
+    pink = finger_up(lm, PINKY_TIP, PINKY_PIP)
+    thumb_up = lm[THUMB_TIP].x < lm[THUMB_IP].x  # mirrored frame
 
-    # Pinch: thumb and index close together, others curled
-    if dist(lm[4], lm[8]) < 0.05 and not mid and not ring and not pink:
+    if dist(lm[THUMB_TIP], lm[INDEX_TIP]) < 0.05 and not mid and not ring and not pink:
         return "pinch"
-    # Fist: all fingers down
-    if not any(fingers) and not thumb_up:
+    if not idx and not mid and not ring and not pink and not thumb_up:
         return "fist"
-    # Thumbs up: only thumb extended
-    if thumb_up and not any(fingers):
+    if thumb_up and not idx and not mid and not ring and not pink:
         return "thumbs_up"
-    # Peace: index + middle only
     if idx and mid and not ring and not pink:
         return "peace"
-    # Point: only index
     if idx and not mid and not ring and not pink:
         return "point"
-    # Open hand: 4+ fingers up
-    if sum(fingers) >= 3:
+    if sum([idx, mid, ring, pink]) >= 3:
         return "open"
     return "other"
 
 
 COLORS = [
-    (0, 200, 255),   # yellow
-    (255, 100, 50),  # blue
-    (50, 255, 100),  # green
-    (100, 50, 255),  # red-ish
-    (255, 50, 200),  # pink
+    (0, 200, 255),
+    (255, 100, 50),
+    (50, 255, 100),
+    (100, 50, 255),
+    (255, 50, 200),
 ]
 
+
 def main():
+    ensure_model()
+
+    base_options = mp_python.BaseOptions(model_asset_path=MODEL_PATH)
+    options = mp_vision.HandLandmarkerOptions(
+        base_options=base_options,
+        num_hands=1,
+        min_hand_detection_confidence=0.6,
+        min_hand_presence_confidence=0.5,
+        min_tracking_confidence=0.5,
+        running_mode=mp_vision.RunningMode.VIDEO,
+    )
+    landmarker = mp_vision.HandLandmarker.create_from_options(options)
+
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-
     w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     # Ball state
-    bx, by = w // 2, h // 2
+    bx, by = float(w // 2), float(h // 2)
     vx, vy = 0.0, 0.0
     radius = 40
     color_idx = 0
@@ -85,19 +120,12 @@ def main():
     frozen = False
     gravity = 0.5
     bounce_damping = 0.75
-    last_gesture = ""
     gesture_cooldown = 0
     pinch_base_dist = None
     pinch_base_radius = 40
 
-    hands = mp_hands.Hands(
-        static_image_mode=False,
-        max_num_hands=1,
-        min_detection_confidence=0.7,
-        min_tracking_confidence=0.6,
-    )
-
     prev_time = time.time()
+    frame_ts = 0
 
     while True:
         ret, frame = cap.read()
@@ -105,24 +133,21 @@ def main():
             break
         frame = cv2.flip(frame, 1)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        result = hands.process(rgb)
+
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        result = landmarker.detect_for_video(mp_image, frame_ts)
+        frame_ts += 33
 
         gesture = "none"
         index_tip = None
 
-        if result.multi_hand_landmarks:
-            lm = result.multi_hand_landmarks[0].landmark
-            mp_draw.draw_landmarks(
-                frame,
-                result.multi_hand_landmarks[0],
-                mp_hands.HAND_CONNECTIONS,
-                mp_draw.DrawingSpec(color=(80, 255, 80), thickness=2, circle_radius=3),
-                mp_draw.DrawingSpec(color=(0, 180, 255), thickness=2),
-            )
+        if result.hand_landmarks:
+            lm = result.hand_landmarks[0]
+            draw_landmarks(frame, lm, w, h)
 
             gesture = classify_gesture(lm)
-            ix = int(lm[8].x * w)
-            iy = int(lm[8].y * h)
+            ix = int(lm[INDEX_TIP].x * w)
+            iy = int(lm[INDEX_TIP].y * h)
             index_tip = (ix, iy)
 
             if gesture_cooldown > 0:
@@ -133,9 +158,8 @@ def main():
                 vx, vy = 0, 0
                 pinch_base_dist = None
 
-            elif gesture == "open" or gesture == "point":
+            elif gesture in ("open", "point"):
                 frozen = False
-                # Smoothly move ball toward fingertip
                 bx += (ix - bx) * 0.25
                 by += (iy - by) * 0.25
                 vx = (ix - bx) * 0.1
@@ -156,50 +180,41 @@ def main():
                 pinch_base_dist = None
 
             elif gesture == "pinch":
-                current_dist = dist(lm[4], lm[8])
+                d = dist(lm[THUMB_TIP], lm[INDEX_TIP])
                 if pinch_base_dist is None:
-                    pinch_base_dist = current_dist
+                    pinch_base_dist = d
                     pinch_base_radius = radius
                 else:
-                    scale = current_dist / pinch_base_dist
+                    scale = d / max(pinch_base_dist, 1e-6)
                     radius = int(max(10, min(120, pinch_base_radius * scale)))
 
             else:
                 pinch_base_dist = None
 
-        # Physics (when not frozen)
+        # Physics
         if not frozen:
             vy += gravity
             bx += vx
             by += vy
 
-            # Wall bounces
             if bx - radius < 0:
-                bx = radius
-                vx = abs(vx) * bounce_damping
+                bx = float(radius); vx = abs(vx) * bounce_damping
             elif bx + radius > w:
-                bx = w - radius
-                vx = -abs(vx) * bounce_damping
+                bx = float(w - radius); vx = -abs(vx) * bounce_damping
 
             if by - radius < 0:
-                by = radius
-                vy = abs(vy) * bounce_damping
+                by = float(radius); vy = abs(vy) * bounce_damping
             elif by + radius > h:
-                by = h - radius
-                vy = -abs(vy) * bounce_damping
-                vx *= 0.92  # friction
+                by = float(h - radius); vy = -abs(vy) * bounce_damping
+                vx *= 0.92
 
-        bx = int(bx)
-        by = int(by)
+        ibx, iby = int(bx), int(by)
 
-        # Draw ball shadow
-        cv2.circle(frame, (bx + 6, by + 6), radius, (30, 30, 30), -1)
         # Draw ball
-        cv2.circle(frame, (bx, by), radius, ball_color, -1)
-        # Highlight
-        cv2.circle(frame, (bx - radius // 4, by - radius // 4), radius // 5, (255, 255, 255), -1)
+        cv2.circle(frame, (ibx + 6, iby + 6), radius, (30, 30, 30), -1)
+        cv2.circle(frame, (ibx, iby), radius, ball_color, -1)
+        cv2.circle(frame, (ibx - radius // 4, iby - radius // 4), radius // 5, (255, 255, 255), -1)
 
-        # Draw fingertip cursor
         if index_tip:
             cv2.circle(frame, index_tip, 10, (0, 255, 255), 2)
 
@@ -208,16 +223,10 @@ def main():
         fps = 1 / max(now - prev_time, 1e-6)
         prev_time = now
 
-        # HUD
         gesture_labels = {
-            "fist": "FREEZE",
-            "open": "FOLLOW",
-            "point": "FOLLOW",
-            "peace": "LAUNCH!",
-            "thumbs_up": "COLOR",
-            "pinch": "RESIZE",
-            "none": "---",
-            "other": "---",
+            "fist": "FREEZE", "open": "FOLLOW", "point": "FOLLOW",
+            "peace": "LAUNCH!", "thumbs_up": "COLOR", "pinch": "RESIZE",
+            "none": "---", "other": "---",
         }
         label = gesture_labels.get(gesture, gesture)
 
@@ -233,22 +242,15 @@ def main():
 
         cv2.putText(frame, "Q = quit", (w - 130, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (150, 150, 150), 1)
 
-        # Gesture guide bottom strip
-        guide = [
-            "Fist=Freeze",
-            "Open/Point=Follow",
-            "Peace=Launch",
-            "ThumbUp=Color",
-            "Pinch=Resize",
-        ]
+        guide = ["Fist=Freeze", "Open/Point=Follow", "Peace=Launch", "ThumbUp=Color", "Pinch=Resize"]
         for i, tip in enumerate(guide):
-            cv2.putText(frame, tip, (10 + i * 240, h - 12),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 100), 1)
+            cv2.putText(frame, tip, (10 + i * 240, h - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 100), 1)
 
         cv2.imshow("Hand Gesture Ball", frame)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
+    landmarker.close()
     cap.release()
     cv2.destroyAllWindows()
 
