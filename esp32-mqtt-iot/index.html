@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32 MQTT Dashboard</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect width="28" height="28" rx="8" fill="#3b82f6"/>
+            <path d="M7 14c0-3.866 3.134-7 7-7s7 3.134 7 7-3.134 7-7 7-7-3.134-7-7z" fill="none" stroke="white" stroke-width="2"/>
+            <path d="M14 10v4l2.5 2.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="14" cy="14" r="2" fill="white"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="app-title">ESP32 IoT Dashboard</h1>
+          <p class="app-sub">MQTT Controller</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="status-pill" id="statusPill">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">กำลังเชื่อมต่อ...</span>
+        </div>
+        <button class="btn-icon" id="settingsBtn" title="ตั้งค่า">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Temperature Card -->
+      <div class="card card--temp">
+        <div class="card-header">
+          <div class="card-icon card-icon--blue">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="card-label">อุณหภูมิ</p>
+            <p class="card-sublabel">Temperature</p>
+          </div>
+        </div>
+        <div class="temp-display">
+          <span class="temp-value" id="tempValue">--</span>
+          <span class="temp-unit">°C</span>
+        </div>
+        <div class="temp-bar-wrap">
+          <div class="temp-bar-track">
+            <div class="temp-bar-fill" id="tempBar" style="width:0%"></div>
+          </div>
+          <div class="temp-range">
+            <span>0°C</span><span>50°C</span>
+          </div>
+        </div>
+        <div class="temp-meta">
+          <div class="temp-meta-item">
+            <span class="meta-label">ความชื้น</span>
+            <span class="meta-val" id="humidVal">--%</span>
+          </div>
+          <div class="temp-meta-item">
+            <span class="meta-label">อัปเดต</span>
+            <span class="meta-val" id="lastUpdate">--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Light Control Card -->
+      <div class="card card--light">
+        <div class="card-header">
+          <div class="card-icon card-icon--yellow">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+          </div>
+          <div>
+            <p class="card-label">ควบคุมหลอดไฟ</p>
+            <p class="card-sublabel">Light Control</p>
+          </div>
+        </div>
+
+        <!-- Light Bulb Visual -->
+        <div class="bulb-visual">
+          <div class="bulb-glow" id="bulbGlow"></div>
+          <svg class="bulb-svg" id="bulbSvg" width="80" height="100" viewBox="0 0 80 100">
+            <defs>
+              <radialGradient id="bulbGrad" cx="50%" cy="40%" r="55%">
+                <stop offset="0%" stop-color="#fef08a"/>
+                <stop offset="100%" stop-color="#f59e0b"/>
+              </radialGradient>
+              <radialGradient id="bulbGradOff" cx="50%" cy="40%" r="55%">
+                <stop offset="0%" stop-color="#4b5563"/>
+                <stop offset="100%" stop-color="#374151"/>
+              </radialGradient>
+            </defs>
+            <ellipse cx="40" cy="38" rx="26" ry="28" fill="url(#bulbGradOff)" id="bulbBody"/>
+            <rect x="28" y="62" width="24" height="5" rx="2" fill="#6b7280" id="bulbBase1"/>
+            <rect x="30" y="67" width="20" height="5" rx="2" fill="#6b7280" id="bulbBase2"/>
+            <rect x="32" y="72" width="16" height="5" rx="2" fill="#6b7280" id="bulbBase3"/>
+            <line x1="33" y1="50" x2="33" y2="60" stroke="#9ca3af" stroke-width="1.5" id="filament1"/>
+            <line x1="47" y1="50" x2="47" y2="60" stroke="#9ca3af" stroke-width="1.5" id="filament2"/>
+            <path d="M33 50 Q40 42 47 50" stroke="#9ca3af" stroke-width="1.5" fill="none" id="filamentTop"/>
+          </svg>
+        </div>
+
+        <!-- Toggle Switch -->
+        <div class="control-row">
+          <span class="control-label">สวิตซ์</span>
+          <label class="toggle">
+            <input type="checkbox" id="lightToggle" onchange="toggleLight(this.checked)"/>
+            <span class="toggle-track">
+              <span class="toggle-thumb"></span>
+            </span>
+          </label>
+          <span class="control-state" id="lightState">ปิด</span>
+        </div>
+
+        <!-- Brightness Slider -->
+        <div class="brightness-section">
+          <div class="brightness-header">
+            <span class="control-label">ความสว่าง</span>
+            <span class="brightness-value" id="brightnessValue">0%</span>
+          </div>
+          <div class="slider-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4">
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <input type="range" class="slider" id="brightnessSlider" min="0" max="100" value="0"
+              oninput="onBrightnessInput(this.value)"
+              onchange="publishBrightness(this.value)"/>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+            </svg>
+          </div>
+          <div class="brightness-presets">
+            <button class="preset-btn" onclick="setPreset(25)">25%</button>
+            <button class="preset-btn" onclick="setPreset(50)">50%</button>
+            <button class="preset-btn" onclick="setPreset(75)">75%</button>
+            <button class="preset-btn" onclick="setPreset(100)">100%</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Connection Status Card -->
+      <div class="card card--status">
+        <div class="card-header">
+          <div class="card-icon card-icon--green">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1.42 9a16 16 0 0 1 21.16 0M5 12.55a11 11 0 0 1 14.08 0M10.54 16.1a6 6 0 0 1 2.92 0"/>
+              <line x1="12" y1="20" x2="12.01" y2="20" stroke-linecap="round" stroke-width="3"/>
+            </svg>
+          </div>
+          <div>
+            <p class="card-label">สถานะการเชื่อมต่อ</p>
+            <p class="card-sublabel">Connection Status</p>
+          </div>
+        </div>
+
+        <div class="status-grid">
+          <div class="status-item">
+            <div class="status-row">
+              <span class="status-badge" id="mqttBadge" data-state="off">MQTT Broker</span>
+              <span class="status-indicator" id="mqttIndicator"></span>
+            </div>
+            <span class="status-detail" id="mqttDetail">--</span>
+          </div>
+          <div class="status-item">
+            <div class="status-row">
+              <span class="status-badge" id="espBadge" data-state="off">ESP32</span>
+              <span class="status-indicator" id="espIndicator"></span>
+            </div>
+            <span class="status-detail" id="espDetail">ยังไม่ได้รับข้อมูล</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="topic-list">
+          <p class="topic-title">Topics</p>
+          <div class="topic-item">
+            <span class="topic-dir topic-dir--sub">SUB</span>
+            <span class="topic-name" id="topicTemp">--</span>
+          </div>
+          <div class="topic-item">
+            <span class="topic-dir topic-dir--pub">PUB</span>
+            <span class="topic-name" id="topicLight">--</span>
+          </div>
+          <div class="topic-item">
+            <span class="topic-dir topic-dir--pub">PUB</span>
+            <span class="topic-name" id="topicBright">--</span>
+          </div>
+        </div>
+
+        <div class="conn-actions">
+          <button class="btn btn--outline" id="reconnectBtn" onclick="reconnect()">เชื่อมต่อใหม่</button>
+          <div class="uptime-wrap">
+            <span class="meta-label">Online</span>
+            <span class="meta-val" id="uptimeVal">--</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Log Panel -->
+    <section class="log-section">
+      <div class="log-header">
+        <span class="log-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          Activity Log
+        </span>
+        <button class="btn-text" onclick="clearLog()">ล้าง</button>
+      </div>
+      <div class="log-body" id="logBody"></div>
+    </section>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeSettings(event)">
+    <div class="modal" id="settingsModal">
+      <div class="modal-header">
+        <h2 class="modal-title">ตั้งค่า MQTT</h2>
+        <button class="btn-icon" onclick="closeSettings()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">MQTT Broker (WebSocket URL)</label>
+          <input class="form-input" type="text" id="cfgBroker" placeholder="ws://broker.hivemq.com:8000/mqtt"/>
+          <p class="form-hint">ใช้ WebSocket URL เช่น ws://host:port/mqtt หรือ wss://</p>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Client ID</label>
+            <input class="form-input" type="text" id="cfgClientId" placeholder="dashboard_001"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input class="form-input" type="text" id="cfgUsername" placeholder="(ถ้ามี)"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-input" type="password" id="cfgPassword" placeholder="(ถ้ามี)"/>
+        </div>
+
+        <div class="divider"></div>
+
+        <p class="section-label">Topics</p>
+        <div class="form-group">
+          <label class="form-label">อุณหภูมิ + ความชื้น (Subscribe)</label>
+          <input class="form-input" type="text" id="cfgTopicTemp" placeholder="esp32/sensor/dht"/>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">สวิตซ์ไฟ (Publish)</label>
+            <input class="form-input" type="text" id="cfgTopicLight" placeholder="esp32/light/switch"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ความสว่าง (Publish)</label>
+            <input class="form-input" type="text" id="cfgTopicBright" placeholder="esp32/light/brightness"/>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn--ghost" onclick="resetDefaults()">ค่าเริ่มต้น</button>
+        <button class="btn btn--primary" onclick="saveSettings()">บันทึกและเชื่อมต่อ</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
