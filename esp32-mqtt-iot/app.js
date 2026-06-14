@@ -1,3 +1,6 @@
+// ── Version ──────────────────────────────────────────────────────
+const APP_VERSION = 'v1.2.0';
+
 // ── Default Config ──────────────────────────────────────────────
 const DEFAULTS = {
   broker:    'wss://broker.hivemq.com:8884/mqtt',
@@ -17,9 +20,11 @@ let brightness = 0;
 let connectedAt = null;
 let uptimeTimer = null;
 let espLastSeen = null;
+let manualDisconnect = false;
 
 // ── Init ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('versionBadge').textContent = APP_VERSION;
   populateTopicLabels();
   document.getElementById('settingsBtn').onclick = openSettings;
   updateSliderTrack(0);
@@ -46,6 +51,9 @@ function connect() {
 
   setStatus('connecting');
   log('info', 'กำลังเชื่อมต่อ', cfg.broker);
+
+  manualDisconnect = false;
+  updateDisconnectBtn(true);
 
   const opts = {
     clientId: cfg.clientId,
@@ -97,6 +105,43 @@ function onMessage(topic, payload) {
 function reconnect() {
   log('info', 'ผู้ใช้กด', 'เชื่อมต่อใหม่');
   connect();
+}
+
+function toggleConnection() {
+  if (client && client.connected) {
+    disconnect();
+  } else {
+    connect();
+  }
+}
+
+function disconnect() {
+  manualDisconnect = true;
+  if (client) {
+    client.end(true);
+    client = null;
+  }
+  setStatus('disconnected');
+  updateDisconnectBtn(false);
+  log('warn', 'Disconnect', 'ตัดการเชื่อมต่อโดยผู้ใช้');
+}
+
+function refreshApp() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  log('info', 'Refresh', `โหลดใหม่... (${APP_VERSION})`);
+  setTimeout(() => location.reload(true), 400);
+}
+
+function updateDisconnectBtn(isConnectedOrTrying) {
+  const btn = document.getElementById('disconnectBtn');
+  if (isConnectedOrTrying) {
+    btn.classList.add('active');
+    btn.title = 'ตัดการเชื่อมต่อ';
+  } else {
+    btn.classList.remove('active');
+    btn.title = 'เชื่อมต่อ';
+  }
 }
 
 // ── Parse Sensor Data ────────────────────────────────────────────
@@ -232,8 +277,9 @@ function setStatus(state) {
     document.getElementById('mqttDetail').textContent = cfg.broker;
   } else if (state === 'disconnected') {
     pill.classList.add('disconnected');
-    txt.textContent = 'ไม่ได้เชื่อมต่อ';
-    document.getElementById('mqttDetail').textContent = 'ไม่ได้เชื่อมต่อ';
+    txt.textContent = manualDisconnect ? 'ตัดการเชื่อมต่อแล้ว' : 'ไม่ได้เชื่อมต่อ';
+    document.getElementById('mqttDetail').textContent = manualDisconnect ? 'ตัดการเชื่อมต่อโดยผู้ใช้' : 'ไม่ได้เชื่อมต่อ';
+    updateDisconnectBtn(false);
     stopUptimeTimer();
   } else {
     txt.textContent = 'กำลังเชื่อมต่อ...';

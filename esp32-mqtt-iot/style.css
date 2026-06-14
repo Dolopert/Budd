@@ -45,8 +45,14 @@ body {
 .header-left { display: flex; align-items: center; gap: 12px; }
 .logo { display: flex; flex-shrink: 0; }
 .app-title { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+.app-sub-row { display: flex; align-items: center; gap: 8px; }
 .app-sub { font-size: 12px; color: var(--text3); }
-.header-right { display: flex; align-items: center; gap: 10px; }
+.version-badge {
+  font-size: 10px; font-family: 'Consolas', monospace; font-weight: 700;
+  color: var(--blue); background: var(--blue-dim); border: 1px solid rgba(59,130,246,0.3);
+  padding: 1px 7px; border-radius: 999px; letter-spacing: 0.3px;
+}
+.header-right { display: flex; align-items: center; gap: 8px; }
 
 .status-pill {
   display: flex; align-items: center; gap: 8px;
@@ -78,6 +84,11 @@ body {
   cursor: pointer; transition: var(--transition);
 }
 .btn-icon:hover { background: var(--surface2); color: var(--text); border-color: var(--text3); }
+.btn-icon--disconnect:hover { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+.btn-icon--disconnect.active { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinning svg { animation: spin 0.6s linear; }
 
 /* ── Main Grid ── */
 .main {
