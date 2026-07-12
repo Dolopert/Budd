@@ -1,0 +1,22 @@
+# FinData Toolkit — Thai (SET) Market Data Source Configuration
+# =============================================================
+# All sources are free and require NO API key.
+
+th_market:
+  primary:
+    valuation: "set_api"        # www.set.or.th public API — free, no key
+    profile: "set_api"
+    price: "set_api"
+  fallback:
+    stock_data: "yahoo_finance" # yfinance with {SYMBOL}.BK suffix
+    financials: "yahoo_finance" # yfinance (known statement schema)
+
+# SET public API needs browser-like headers (set in set_data.py).
+set_api:
+  base_url: "https://www.set.or.th/api/set/stock"
+  lang: "en"
+
+# Rate limit settings (requests per second) — be polite to the public API.
+rate_limits:
+  set_api: 2
+  yahoo_finance: 2
