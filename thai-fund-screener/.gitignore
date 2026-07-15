@@ -1,7 +1,9 @@
 .env
-data/raw/
+data/raw/*
+!data/raw/.gitkeep
 data/checkpoint.json
-data/processed/
+data/processed/*
+!data/processed/.gitkeep
 output/*.xlsx
 __pycache__/
 *.pyc

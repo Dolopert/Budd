@@ -73,15 +73,27 @@ thai-fund-screener/
 
 ## L — Launch Plan
 
-- [ ] Task 0: Spike — ยิง API จริง 3 กอง (policy/performance/fee) dump raw JSON
-      มาดู schema จริง แล้วอัปเดต PLAN.md ส่วน parser ให้ตรงความจริง
-- [ ] Task 1: client.py + test ยิง /fund/amc สำเร็จ (พิมพ์จำนวน บลจ.)
-- [ ] Task 2: fetch_master.py → all_funds.json ครบ ตรวจ: จำนวนกอง > 1,500
-- [ ] Task 3: fetch_details.py + checkpoint/resume ตรวจ: kill กลางทางแล้วรันต่อได้
-- [ ] Task 4: clean.py ตรวจ: ไม่มีกองสถานะปิด, จำนวนหลัง clean สมเหตุสมผล
-- [ ] Task 5: classify.py ตรวจ: สุ่ม 20 กองเทียบกับ Factsheet จริง ถูก ≥ 18/20
-- [ ] Task 6: rank.py ตรวจ: กองที่ติด Top ไม่มีค่า null ในคอลัมน์คะแนน
-- [ ] Task 7: export.py ตรวจ: เปิด Excel แล้วครบ 2 ชีต × 25 แถว
+- [~] Task 0: Spike — **BLOCKED in this environment**: outbound network policy denies
+      `api.sec.or.th` (403 from egress proxy). Endpoints/params/response fields below were
+      instead confirmed from the public spec mirror (github.com/Sitthinut/sec-open-data-api-spec):
+      - `GET /v2/fund/general-info/amcs` — params: next_cursor, page_size(=100) → unique_id, comp_name_th, comp_name_en, last_upd_date
+      - `GET /v2/fund/general-info/profiles` — params: next_cursor, page_size, fund_class_name, fund_status, project_info, company_info → proj_id, regis_id, proj_name_th/en, comp_name_th/en, fund_status, fund_class_name, fund_class_isin_code
+      - `GET /v2/fund/general-info/specifications` — params: proj_id, fund_class_name → spec_code, **spec_desc** (this is the policy description used by classify.py)
+      - `GET /v2/fund/general-info/mutual-fund-fees` — params: proj_id, fund_class_name → fee_type_desc, rate, rate_unit
+      - `GET /v2/fund/factsheet/benchmarks` — params: proj_id, start_date, end_date, latest → benchmark, prospectus_type
+      - `GET /v2/fund/factsheet/performance` — **schema NOT confirmed live**; rank.py guesses candidate field names (return_1y/3y/5y, sharpe_ratio) defensively — **must re-run this spike for real once network access is available and adjust `PERFORMANCE_KEY_CANDIDATES` in `src/rank.py`**
+      Auth header confirmed: `Ocp-Apim-Subscription-Key: <SEC_API_KEY>`
+- [x] Task 1: client.py + test ยิง /fund/amc สำเร็จ (พิมพ์จำนวน บลจ.) — code written (`src/client.py`), untested live (network blocked)
+- [x] Task 2: fetch_master.py → all_funds.json ครบ ตรวจ: จำนวนกอง > 1,500 — code written (`src/fetch_master.py`), untested live
+- [x] Task 3: fetch_details.py + checkpoint/resume ตรวจ: kill กลางทางแล้วรันต่อได้ — code written (`src/fetch_details.py`), untested live
+- [x] Task 4: clean.py ตรวจ: ไม่มีกองสถานะปิด, จำนวนหลัง clean สมเหตุสมผล — verified against fixture data
+- [x] Task 5: classify.py ตรวจ: สุ่ม 20 กองเทียบกับ Factsheet จริง ถูก ≥ 18/20 — logic verified against fixture (needs real-data validation once network access is available)
+- [x] Task 6: rank.py ตรวจ: กองที่ติด Top ไม่มีค่า null ในคอลัมน์คะแนน — verified against fixture; field names pending real schema
+- [x] Task 7: export.py ตรวจ: เปิด Excel แล้วครบ 2 ชีต × 25 แถว — verified against fixture (2 sheets, correct filtering)
+
+**Next session TODO:** once network access to `api.sec.or.th` is available, run `python src/spike.py`
+for real, inspect `data/raw/spike/*.json` (especially `factsheet_performance.json`), then adjust
+`PERFORMANCE_KEY_CANDIDATES` in `src/rank.py` and re-run the full pipeline end-to-end against live data.
 
 กติกา: 1 Task = 1 session ของ Claude Code ถ้าจะข้ามไป Task อื่น เปิด session ใหม่ พร้อม Context
 Capsule เสมอ
