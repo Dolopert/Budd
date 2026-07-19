@@ -23,11 +23,10 @@
       radial-gradient(circle at 82% 88%, #FFF1DC 0%, transparent 45%),
       var(--cream);
     color:var(--ink);
-    min-height:100vh;
+    min-height:100dvh;
     display:flex;
-    align-items:center;
+    align-items:stretch;
     justify-content:center;
-    padding:28px 16px;
     -webkit-font-smoothing:antialiased;
   }
 
@@ -42,17 +41,32 @@
   .card{
     position:relative;
     width:100%;
-    max-width:430px;
+    max-width:100%;
+    min-height:100dvh;
     background:var(--paper);
-    border-radius:26px;
-    padding:78px 26px 26px;
-    box-shadow:0 24px 60px -22px rgba(200,91,124,.45), 0 4px 14px -6px rgba(0,0,0,.06);
+    padding:calc(22px + env(safe-area-inset-top)) 22px calc(26px + env(safe-area-inset-bottom));
+    box-shadow:none;
     z-index:1;
-    border:1.5px solid var(--line);
+    border:none;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+  }
+  /* On larger screens: show it as a centered phone-sized card */
+  @media (min-width:560px){
+    body{padding:28px 16px;}
+    .card{
+      max-width:430px;
+      min-height:auto;
+      border-radius:26px;
+      padding:22px 26px 26px;
+      border:1.5px solid var(--line);
+      box-shadow:0 24px 60px -22px rgba(200,91,124,.45), 0 4px 14px -6px rgba(0,0,0,.06);
+    }
   }
 
   /* Kitty mascot (original character) */
-  .kitty{position:absolute;top:-58px;left:50%;transform:translateX(-50%);width:132px;height:132px;z-index:2;filter:drop-shadow(0 10px 12px rgba(200,91,124,.22));}
+  .kitty{position:relative;margin:0 auto 6px;width:118px;height:118px;z-index:2;filter:drop-shadow(0 10px 12px rgba(200,91,124,.22));}
   .kitty svg{width:100%;height:100%;display:block;}
   @keyframes tailwag{0%,100%{transform:rotate(0deg);}50%{transform:rotate(-9deg);}}
   @keyframes blink{0%,92%,100%{transform:scaleY(1);}96%{transform:scaleY(.1);}}
