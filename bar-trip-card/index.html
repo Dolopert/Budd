@@ -1,0 +1,394 @@
+<title>บัตรขออนุญาตไปเที่ยว 🐱</title>
+<style>
+  :root{
+    --cream:#FFF9F6;
+    --paper:#FFFFFF;
+    --pink:#F7C9D4;
+    --pink-soft:#FCE6EC;
+    --blush:#E67C99;
+    --blush-deep:#C85B7C;
+    --ink:#4A3F44;
+    --ink-soft:#8C7A82;
+    --line:#F0D5DD;
+    --mint:#BFE3D6;
+    --red:#EE2B3B;
+    --red-deep:#B31527;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    font-family:"Noto Sans Thai","Leelawadee UI","Sukhumvit Set","Trebuchet MS",system-ui,sans-serif;
+    background:
+      radial-gradient(circle at 18% 12%, #FFEAF0 0%, transparent 42%),
+      radial-gradient(circle at 82% 88%, #FFF1DC 0%, transparent 45%),
+      var(--cream);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:28px 16px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .paws{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+  .paws span{position:absolute;font-size:22px;opacity:.35;}
+  .paws span:nth-child(1){top:8%;left:8%;transform:rotate(-12deg);}
+  .paws span:nth-child(2){top:22%;right:10%;transform:rotate(18deg);}
+  .paws span:nth-child(3){bottom:14%;left:12%;transform:rotate(8deg);}
+  .paws span:nth-child(4){bottom:24%;right:8%;transform:rotate(-20deg);}
+  .paws span:nth-child(5){top:52%;left:4%;transform:rotate(6deg);}
+
+  .card{
+    position:relative;
+    width:100%;
+    max-width:430px;
+    background:var(--paper);
+    border-radius:26px;
+    padding:78px 26px 26px;
+    box-shadow:0 24px 60px -22px rgba(200,91,124,.45), 0 4px 14px -6px rgba(0,0,0,.06);
+    z-index:1;
+    border:1.5px solid var(--line);
+  }
+
+  /* Kitty mascot (original character) */
+  .kitty{position:absolute;top:-58px;left:50%;transform:translateX(-50%);width:132px;height:132px;z-index:2;filter:drop-shadow(0 10px 12px rgba(200,91,124,.22));}
+  .kitty svg{width:100%;height:100%;display:block;}
+  @keyframes tailwag{0%,100%{transform:rotate(0deg);}50%{transform:rotate(-9deg);}}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1);}96%{transform:scaleY(.1);}}
+  .kitty .tail{transform-box:fill-box;transform-origin:top left;animation:tailwag 3.2s ease-in-out infinite;}
+  .kitty .eyes{transform-box:fill-box;transform-origin:center;animation:blink 5s ease-in-out infinite;}
+  @media (prefers-reduced-motion:reduce){.kitty .tail,.kitty .eyes{animation:none;}}
+
+  .eyebrow{
+    text-align:center;
+    letter-spacing:.32em;
+    font-size:11px;
+    text-transform:uppercase;
+    color:var(--blush-deep);
+    margin:14px 0 2px;
+    font-weight:700;
+  }
+  h1{
+    text-align:center;
+    font-size:26px;
+    margin:0 0 4px;
+    letter-spacing:.01em;
+    text-wrap:balance;
+  }
+  .sub{text-align:center;color:var(--ink-soft);font-size:13px;margin:0 0 18px;}
+  .whisker{height:1px;background:linear-gradient(90deg,transparent,var(--line) 20%,var(--pink) 50%,var(--line) 80%,transparent);margin:0 4px 20px;}
+
+  .to{
+    background:var(--pink-soft);
+    border-radius:16px;
+    padding:12px 16px;
+    text-align:center;
+    margin-bottom:20px;
+  }
+  .to small{display:block;color:var(--blush-deep);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:3px;}
+  .to b{font-size:18px;}
+
+  .rows{display:flex;flex-direction:column;gap:0;}
+  .row{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+    padding:11px 2px;
+    border-bottom:1px dashed var(--line);
+  }
+  .row:last-child{border-bottom:none;}
+  .row .k{color:var(--ink-soft);font-size:13px;display:flex;align-items:center;gap:7px;white-space:nowrap;}
+  .row .k .ic{font-size:15px;}
+  .row .v{font-weight:700;font-size:15px;text-align:right;}
+  .row .v .hi{color:var(--blush-deep);}
+  .row .v .fill{color:var(--ink-soft);font-weight:600;letter-spacing:.04em;}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;}
+  .chip{background:var(--pink-soft);color:var(--blush-deep);font-size:12px;font-weight:700;padding:4px 9px;border-radius:999px;}
+  .chip.mint{background:#E3F5EE;color:#3E8C74;}
+
+  .loc{
+    display:flex;align-items:center;gap:10px;
+    background:linear-gradient(135deg,#FFF4F7,#FFF9EE);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:12px 14px;
+    margin:18px 0;
+    text-decoration:none;
+    color:inherit;
+  }
+  .loc .pin{font-size:22px;}
+  .loc .txt{flex:1;}
+  .loc .txt b{display:block;font-size:15px;}
+  .loc .txt span{font-size:12px;color:var(--ink-soft);}
+  .loc .go{font-size:11px;font-weight:700;color:#fff;background:var(--blush);padding:6px 12px;border-radius:999px;white-space:nowrap;}
+
+  .promise{
+    background:var(--pink-soft);
+    border-radius:16px;
+    padding:14px 16px;
+    font-size:13px;
+    line-height:1.7;
+    margin-bottom:20px;
+  }
+  .promise .h{font-weight:700;color:var(--blush-deep);margin-bottom:4px;}
+
+  .approve{display:flex;gap:10px;margin-bottom:20px;}
+  .opt{
+    flex:1;text-align:center;border:1.5px solid var(--line);border-radius:14px;padding:12px 8px;font-size:13px;font-weight:700;
+  }
+  .opt.yes{background:#EAF8F1;border-color:#BFE3D6;color:#3E8C74;}
+  .opt .box{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-radius:4px;vertical-align:-2px;margin-right:6px;}
+  .opt.yes .box{background:#3E8C74;border-color:#3E8C74;position:relative;}
+  .opt.yes .box::after{content:"✓";color:#fff;font-size:10px;position:absolute;top:-3px;left:1px;}
+
+  .call{
+    width:100%;
+    border:none;
+    cursor:pointer;
+    background:linear-gradient(135deg,var(--red),var(--blush));
+    color:#fff;
+    font-family:inherit;
+    font-weight:800;
+    font-size:15px;
+    padding:14px 18px;
+    border-radius:16px;
+    margin-bottom:20px;
+    box-shadow:0 10px 22px -8px rgba(238,43,59,.55);
+    transition:transform .12s ease, box-shadow .12s ease;
+    display:flex;align-items:center;justify-content:center;gap:9px;
+  }
+  .call:hover{transform:translateY(-2px);box-shadow:0 14px 26px -8px rgba(238,43,59,.6);}
+  .call:active{transform:translateY(1px) scale(.98);}
+  .call:focus-visible{outline:3px solid var(--blush-deep);outline-offset:2px;}
+  @keyframes ring{0%,100%{transform:rotate(0);}20%{transform:rotate(-16deg);}40%{transform:rotate(16deg);}60%{transform:rotate(-10deg);}80%{transform:rotate(10deg);}}
+  .call.ringing .ph{display:inline-block;animation:ring .5s ease-in-out 3;}
+  .call-note{
+    text-align:center;font-size:12px;color:var(--ink-soft);margin:-12px 0 18px;min-height:16px;
+    transition:opacity .3s ease;font-weight:600;
+  }
+  .call-note.show{color:var(--red-deep);}
+
+  .share{
+    width:100%;
+    cursor:pointer;
+    font-family:inherit;
+    font-weight:800;
+    font-size:14px;
+    color:var(--blush-deep);
+    background:var(--pink-soft);
+    border:1.5px solid var(--pink);
+    padding:12px 18px;
+    border-radius:16px;
+    margin-bottom:6px;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:transform .12s ease, background .15s ease;
+  }
+  .share:hover{transform:translateY(-2px);background:#FBDCE5;}
+  .share:active{transform:translateY(1px) scale(.98);}
+  .share:focus-visible{outline:3px solid var(--blush-deep);outline-offset:2px;}
+
+  .signoff{text-align:center;margin-top:6px;}
+  .signoff .heart{font-size:22px;}
+  .signoff .msg{font-size:20px;font-weight:700;color:var(--blush-deep);margin:4px 0 2px;}
+  .signoff .from{font-size:13px;color:var(--ink-soft);}
+
+  .stamp{
+    position:absolute;top:20px;right:16px;
+    width:66px;height:66px;border-radius:50%;
+    border:2px dashed var(--red);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:var(--red-deep);transform:rotate(12deg);
+    font-size:9px;font-weight:700;text-align:center;line-height:1.2;letter-spacing:.05em;
+    background:rgba(255,240,242,.7);
+  }
+  .stamp .big{font-size:20px;}
+
+  @media (max-width:380px){
+    .row{flex-wrap:wrap;}
+    .row .v{text-align:left;}
+    .chips{justify-content:flex-start;}
+  }
+</style>
+
+<div class="paws"><span>🐾</span><span>🐾</span><span>🐾</span><span>🐾</span><span>🐾</span></div>
+
+<div class="card">
+  <div class="kitty">
+    <svg viewBox="0 0 132 132" role="img" aria-label="มาสคอตแมวขาวผูกโบว์">
+      <!-- tail -->
+      <path class="tail" d="M104 96 q22 2 20 -18 q-2 -14 -14 -12 q-8 2 -6 10 q1 5 6 4 q3 -1 2 -4"
+            fill="none" stroke="#EFE7EA" stroke-width="7" stroke-linecap="round"/>
+      <!-- body -->
+      <path d="M40 128 q-6 -34 8 -46 q18 -14 36 0 q14 12 8 46 Z" fill="#FFFFFF" stroke="#EFE7EA" stroke-width="2.5"/>
+      <!-- paws -->
+      <ellipse cx="52" cy="122" rx="8" ry="6" fill="#FFFFFF" stroke="#EFE7EA" stroke-width="2"/>
+      <ellipse cx="80" cy="122" rx="8" ry="6" fill="#FFFFFF" stroke="#EFE7EA" stroke-width="2"/>
+      <!-- ears -->
+      <path d="M30 44 L34 14 L58 34 Z" fill="#FFFFFF" stroke="#EFE7EA" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M102 44 L98 14 L74 34 Z" fill="#FFFFFF" stroke="#EFE7EA" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M37 34 L39 20 L50 33 Z" fill="#F7C9D4"/>
+      <path d="M95 34 L93 20 L82 33 Z" fill="#F7C9D4"/>
+      <!-- head -->
+      <ellipse cx="66" cy="60" rx="38" ry="33" fill="#FFFFFF" stroke="#EFE7EA" stroke-width="2.5"/>
+      <!-- cheeks -->
+      <circle cx="42" cy="66" r="7" fill="#FCE0E8"/>
+      <circle cx="90" cy="66" r="7" fill="#FCE0E8"/>
+      <!-- eyes -->
+      <g class="eyes">
+        <ellipse cx="54" cy="58" rx="4.2" ry="5.4" fill="#4A3F44"/>
+        <ellipse cx="78" cy="58" rx="4.2" ry="5.4" fill="#4A3F44"/>
+        <circle cx="55.4" cy="56" r="1.4" fill="#fff"/>
+        <circle cx="79.4" cy="56" r="1.4" fill="#fff"/>
+      </g>
+      <!-- nose + mouth -->
+      <path d="M63 66 h6 l-3 3 Z" fill="#E67C99"/>
+      <path d="M66 69 q-4 5 -9 3 M66 69 q4 5 9 3" fill="none" stroke="#C8AEB6" stroke-width="1.6" stroke-linecap="round"/>
+      <!-- whiskers -->
+      <g stroke="#E6D2DA" stroke-width="1.6" stroke-linecap="round">
+        <path d="M26 56 h16"/><path d="M25 64 h17"/>
+        <path d="M106 56 h-16"/><path d="M107 64 h-17"/>
+      </g>
+      <!-- bow (classic red) -->
+      <path d="M92 28 q-15 -9 -15 5 q0 14 15 5 Z" fill="#EE2B3B" stroke="#B31527" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M92 28 q15 -9 15 5 q0 14 -15 5 Z" fill="#EE2B3B" stroke="#B31527" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="92" cy="38" r="4.5" fill="#C81428" stroke="#B31527" stroke-width="1.5"/>
+    </svg>
+  </div>
+
+  <div class="stamp"><span class="big">🐾</span>ขอ<br>อนุญาต</div>
+
+  <div class="eyebrow">official meow permit</div>
+  <h1>บัตรขออนุญาตไปเที่ยว</h1>
+  <p class="sub">ฉบับจริงจังระดับ 3% · โปรดพิจารณาด้วยความเมตตา 🥺</p>
+  <div class="whisker"></div>
+
+  <div class="to">
+    <small>เรียน เจ้านายที่รัก</small>
+    <b>คุณ Nuttha 🎀</b>
+  </div>
+
+  <div class="rows">
+    <div class="row">
+      <span class="k"><span class="ic">🙋‍♂️</span>ผู้ยื่นคำขอ</span>
+      <span class="v">Bunyawat <span class="hi">(อ้วน)</span></span>
+    </div>
+    <div class="row">
+      <span class="k"><span class="ic">📅</span>วันที่ขอไป</span>
+      <span class="v">เสาร์ 25 ก.ค. 2026 🎀</span>
+    </div>
+    <div class="row">
+      <span class="k"><span class="ic">🍻</span>สถานที่</span>
+      <span class="v">sigma.kkc</span>
+    </div>
+    <div class="row">
+      <span class="k"><span class="ic">🐾</span>ทีมแก๊งเหมียว</span>
+      <span class="chips">
+        <span class="chip">👦 ชาย 3</span>
+        <span class="chip">👧 หญิง 3</span>
+        <span class="chip mint">🌈 เกย์ 1</span>
+        <span class="chip">รวม 7</span>
+      </span>
+    </div>
+    <div class="row">
+      <span class="k"><span class="ic">🌙</span>เวลาออกเดินทาง</span>
+      <span class="v">22:00 น.</span>
+    </div>
+    <div class="row">
+      <span class="k"><span class="ic">🌅</span>เวลากลับ (โดยประมาณ)</span>
+      <span class="v">04:00 น. <span class="hi">± นิดหน่อย</span></span>
+    </div>
+  </div>
+
+  <a class="loc" href="https://www.google.com/maps/search/?api=1&query=sigma.kkc+khon+kaen" target="_blank" rel="noopener">
+    <span class="pin">📍</span>
+    <span class="txt"><b>sigma.kkc</b><span>แตะเพื่อเปิด Location ใน Google Maps</span></span>
+    <span class="go">เปิดแผนที่</span>
+  </a>
+
+  <div class="promise">
+    <div class="h">📜 สัญญาลูกแมวน้อย</div>
+    ✦ ดื่มพองาม ไม่เมาเละ<br>
+    ✦ รับสายทุกครั้งที่โทร<br>
+    ✦ แชร์โลเคชั่นตลอดคืน<br>
+    ✦ กลับบ้านไปจะรีบบอกทันที 💌
+  </div>
+
+  <div class="approve">
+    <div class="opt yes"><span class="box"></span>อนุมัติ ไปได้เลยจ้ะ</div>
+    <div class="opt"><span class="box"></span>ไม่อนุมัติ อยู่กับเค้า</div>
+  </div>
+
+  <button class="call" id="callBtn" type="button">
+    <span class="ph">📞</span> เหงา… กดเรียกอ้วนเลย!
+  </button>
+  <div class="call-note" id="callNote">กดเมื่อคิดถึง แล้วอ้วนจะรีบวิ่งกลับบ้าน 🏃‍♂️💨</div>
+
+  <button class="share" id="shareBtn" type="button"><span>🔗</span> แชร์บัตรน่ารักๆ ใบนี้</button>
+  <div class="call-note" id="shareNote"></div>
+
+  <div class="signoff">
+    <div class="heart">🐱💗</div>
+    <div class="msg">รักอ้วนมาก จุ้บๆๆ</div>
+    <div class="from">— ด้วยรักและอ้อน จาก Bunyawat —</div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var btn = document.getElementById('callBtn');
+    var note = document.getElementById('callNote');
+    var msgs = [
+      "📞 กำลังโทรหาอ้วน… ติ๊ด ติ๊ด 💗",
+      "🥺 อ้วนรับสายแล้ว! “ว่าไงคนดี คิดถึงเหรอ”",
+      "🏃‍♂️💨 อ้วนกำลังเก็บของกลับบ้านแล้วนะ!",
+      "💌 รอแป๊บนะ เดี๋ยวถึงแล้ว จุ้บๆๆ 🦋"
+    ];
+    var i = 0;
+    function heart(x,y){
+      var h=document.createElement('span');
+      h.textContent=['💗','🐱','🎀','💋','✨'][Math.floor(Math.random()*5)];
+      h.style.cssText='position:fixed;left:'+x+'px;top:'+y+'px;font-size:20px;pointer-events:none;z-index:99;transition:transform 1s ease,opacity 1s ease;';
+      document.body.appendChild(h);
+      requestAnimationFrame(function(){
+        h.style.transform='translate('+(Math.random()*80-40)+'px,-90px) rotate('+(Math.random()*60-30)+'deg)';
+        h.style.opacity='0';
+      });
+      setTimeout(function(){h.remove();},1000);
+    }
+    btn.addEventListener('click', function(e){
+      note.textContent = msgs[i % msgs.length];
+      note.classList.add('show');
+      i++;
+      btn.classList.remove('ringing'); void btn.offsetWidth; btn.classList.add('ringing');
+      // สั่นจริงบนมือถือที่รองรับ (ต้องเกิดจากการกดของผู้ใช้)
+      try { if (navigator.vibrate) navigator.vibrate([90,50,90,50,140]); } catch(err){}
+      var r = btn.getBoundingClientRect();
+      for(var k=0;k<6;k++){
+        (function(kk){ setTimeout(function(){ heart(r.left+Math.random()*r.width, r.top); }, kk*70); })(k);
+      }
+    });
+
+    // ปุ่มแชร์
+    var sbtn = document.getElementById('shareBtn');
+    var snote = document.getElementById('shareNote');
+    sbtn.addEventListener('click', async function(){
+      var url = (window.top === window ? window.location.href : document.referrer) || window.location.href;
+      var data = { title:'บัตรขออนุญาตไปเที่ยว 🐱', text:'บัตรขอไปเที่ยวจากอ้วนถึง Nuttha 🎀 กดดูเลย!', url:url };
+      try {
+        if (navigator.share) { await navigator.share(data); return; }
+        throw new Error('no share');
+      } catch(err){
+        try {
+          await navigator.clipboard.writeText(url);
+          snote.textContent = 'คัดลอกลิงก์แล้ว! เอาไปแปะส่งได้เลย 💌';
+        } catch(e2){
+          snote.textContent = 'กดปุ่มแชร์มุมขวาบนของหน้าเพื่อสร้างลิงก์นะ 🔗';
+        }
+        snote.classList.add('show');
+      }
+    });
+  })();
+</script>
