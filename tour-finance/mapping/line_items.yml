@@ -12,9 +12,13 @@ income_statement:               # ชีต PL
     match: exact
     required: true
     aliases: ["รวมรายได้", "รายได้รวม"]
-  cogs_components:              # ต้นทุนขาย = ผลรวมของบรรทัดเหล่านี้ที่พบ
+  cogs_subtotal:               # ถ้ามีบรรทัด "รวมต้นทุน..." ใช้ยอดรวมนี้ก่อน (ASIA)
     match: prefix
-    required: true
+    required: false
+    aliases: ["รวมต้นทุนขายและบริการ", "รวมต้นทุนขายและให้บริการ", "รวมต้นทุนขาย"]
+  cogs_components:              # ไม่มี subtotal -> ผลรวมของบรรทัดเหล่านี้ (CENTEL/MINT/ERW)
+    match: prefix
+    required: false            # COGS required แต่พอใจด้วย subtotal หรือ components อย่างใดอย่างหนึ่ง (เช็คในโค้ด)
     sum: true
     aliases:
       - "ต้นทุนการประกอบกิจการโรงแรม"          # CENTEL

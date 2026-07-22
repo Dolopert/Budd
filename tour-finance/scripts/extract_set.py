@@ -86,23 +86,47 @@ def open_book(path):
             for sh in wb.sheets()]
 
 
-# ---------- fuzzy sheet lookup ----------
+# ---------- label reading (label อาจอยู่คนละคอลัมน์ตาม indent เช่น ASIA) ----------
+def row_label(sheet, r, upto):
+    """label ของแถว = ข้อความช่องแรกที่ไม่ว่าง ในคอลัมน์ 0..upto-1 (ซ้ายของคอลัมน์ตัวเลข)"""
+    for c in range(max(0, upto)):
+        t = norm(sheet.cell_value(r, c))
+        if t:
+            return t
+    return ""
+
+
+def sheet_has_label(sheet, targets, scan_cols=10):
+    """จริงถ้ามีแถวใดที่ label (นับช่องซ้ายสุดที่ไม่ว่าง) ตรงกับ targets"""
+    tset = {nospace(t) for t in targets}
+    for r in range(sheet.nrows):
+        if nospace(row_label(sheet, r, scan_cols)) in tset:
+            return True
+    return False
+
+
+# ---------- content-based sheet lookup (ทนต่อชื่อชีตแปลกๆ เช่น 'FS.T') ----------
 def get_bs_sheet(grids):
-    for g in grids:
+    for g in grids:                                   # งบดุล = ชีตที่มีบรรทัด 'รวมสินทรัพย์'
+        if sheet_has_label(g, ["รวมสินทรัพย์"]):
+            return g
+    for g in grids:                                   # เผื่อไว้: ชื่อขึ้นต้น BS
         if norm(g.name).upper().startswith("BS"):
             return g
-    raise ExtractError(f"ไม่พบชีตงบดุล (BS*) — มีชีต: {[g.name for g in grids]}")
+    raise ExtractError(f"ไม่พบชีตงบดุล — มีชีต: {[g.name for g in grids]}")
 
 
 def get_pl_sheet(grids):
-    """เลือกชีตงบกำไรขาดทุน; ถ้ามีทั้ง PL(3)/PL(6) ให้เลือก 3 เดือน"""
-    pls = [g for g in grids if norm(g.name).upper().startswith("PL")]
+    """งบกำไรขาดทุน = ชีตที่มี 'รวมรายได้'; ถ้ามีทั้ง PL(3)/PL(6) เลือก 3 เดือน"""
+    pls = [g for g in grids if sheet_has_label(g, ["รวมรายได้", "รายได้รวม"])]
     if not pls:
-        raise ExtractError(f"ไม่พบชีตงบกำไรขาดทุน (PL*) — มีชีต: {[g.name for g in grids]}")
-    for g in pls:                       # ชอบชีต 3 เดือนที่ระบุชัด '(3)'
+        pls = [g for g in grids if norm(g.name).upper().startswith("PL")]
+    if not pls:
+        raise ExtractError(f"ไม่พบชีตงบกำไรขาดทุน — มีชีต: {[g.name for g in grids]}")
+    for g in pls:                                     # ชอบชีต 3 เดือนที่ระบุชัด '(3)'
         if "(3)" in g.name:
             return g
-    return pls[0]                        # ที่เหลือ = ชีตเดียว/รวม (row-window ตัดชุดสะสมเอง)
+    return pls[0]                                     # ที่เหลือ = ชีตเดียว/รวม (row-window ตัดชุดสะสม)
 
 
 # ---------- unit detection ----------
@@ -187,18 +211,19 @@ def bs_date_cols(bs_sheet, year_be):
 
 
 # ---------- line-item lookup ----------
-def pl_first_statement_end(pl_sheet):
+def pl_first_statement_end(pl_sheet, label_upto):
     """งบไตรมาสมีงบกำไรขาดทุน 2 ชุด (3 เดือน + สะสม) ในชีตเดียว —
     คืนแถวสิ้นสุดของชุดแรก = แถว 'รวมรายได้' ครั้งที่ 2 (ถ้าไม่มี = ทั้งชีต)
     """
     rev_rows = [r for r in range(pl_sheet.nrows)
-                if nospace(pl_sheet.cell_value(r, 0)) in ("รวมรายได้", "รายได้รวม")]
+                if nospace(row_label(pl_sheet, r, label_upto)) in ("รวมรายได้", "รายได้รวม")]
     return rev_rows[1] if len(rev_rows) >= 2 else pl_sheet.nrows
 
 
 def find_value(sheet, col, spec, divisor, row_end=None):
     """คืนค่า (ล้านบาท) ของ canonical item ตาม spec; sum ถ้ากำหนด
     row_end จำกัดขอบเขตแถว (ใช้กันไม่ให้ข้ามไปงบชุดสะสม)
+    label อ่านจากช่องซ้ายสุดที่ไม่ว่าง (คอลัมน์ 0..col-1) รองรับ indent หลายคอลัมน์
     """
     match_mode = spec.get("match", "prefix")
     aliases = [nospace(a) for a in spec["aliases"]]
@@ -206,7 +231,7 @@ def find_value(sheet, col, spec, divisor, row_end=None):
     limit = row_end if row_end is not None else sheet.nrows
     found = []
     for r in range(limit):
-        label = nospace(sheet.cell_value(r, 0))
+        label = nospace(row_label(sheet, r, col))
         if not label:
             continue
         hit = False
@@ -247,12 +272,18 @@ def extract_file(path):
     missing = []
 
     # income statement (เฉพาะงบชุดแรก = 3 เดือน; กันข้ามไปงบสะสม)
-    pl_end = pl_first_statement_end(pl)
+    pl_end = pl_first_statement_end(pl, pl_col)
     for name, spec in cfg["income_statement"].items():
         v = find_value(pl, pl_col, spec, pl_div, row_end=pl_end)
         if v is None and spec.get("required"):
             missing.append(f"PL:{name}")
         out[name] = v
+
+    # COGS: ใช้ subtotal ถ้ามี (ASIA) มิฉะนั้นผลรวม components (CENTEL/ERW); เป็นค่าบวกเสมอ
+    cogs = out.get("cogs_subtotal") or out.get("cogs_components")
+    if cogs is None:
+        missing.append("PL:cogs (ทั้ง subtotal และ components)")
+    out["cogs"] = abs(cogs) if cogs is not None else None
 
     # balance sheet: เก็บทั้งยอดปลายงวด (cur) และต้นงวด (beg)
     for name, spec in cfg["balance_sheet"].items():
@@ -302,7 +333,7 @@ def compute_quarter(rec):
     def avg(a, b):
         return (a + b) / 2 if (a is not None and b is not None) else (a if b is None else b)
     m = metrics(
-        rec["net_profit_total"], rec["total_revenue"], rec["cogs_components"],
+        rec["net_profit_total"], rec["total_revenue"], rec["cogs"],
         avg(rec["trade_receivables_begin"], rec["trade_receivables_end"]),
         avg(rec["inventory_begin"], rec["inventory_end"]),
         avg(rec["trade_payables_begin"], rec["trade_payables_end"]),
@@ -327,7 +358,7 @@ def derive_q4(recs_by_tag):
     fy, q1, q2, q3 = (recs_by_tag[t] for t in ["FY", "Q1", "Q2", "Q3"])
     flow = lambda k: fy[k] - q1[k] - q2[k] - q3[k]
     q4 = {"quarter": "Q4", "year": fy["year"], "is_annual": False, "derived": True}
-    for k in ["total_revenue", "cogs_components", "net_profit_total"]:
+    for k in ["total_revenue", "cogs", "net_profit_total"]:
         q4[k] = flow(k)
     # งบดุล Q4: ต้นงวด = ปลาย Q3 (ก.ย.), ปลายงวด = ปลายปี (จากไฟล์ FY)
     for base in ["trade_receivables", "inventory", "trade_payables",
@@ -368,7 +399,7 @@ def main(argv):
     print(hdr)
     for r in recs:
         tag = "FY" if r["is_annual"] else r["quarter"]
-        print(f"{tag+'/'+str(r['year']):>7} {r['total_revenue']:>12.1f} {r['cogs_components']:>12.1f} "
+        print(f"{tag+'/'+str(r['year']):>7} {r['total_revenue']:>12.1f} {r['cogs']:>12.1f} "
               f"{r['net_profit_total']:>12.1f} {r['trade_receivables_end']:>10.1f} "
               f"{r['inventory_end']:>10.1f} {r['trade_payables_end']:>10.1f} "
               f"{r['total_assets_end']:>12.1f} {r['total_equity_end']:>12.1f}")
@@ -378,7 +409,7 @@ def main(argv):
     q4 = derive_q4(by_tag)
     if q4:
         rev4 = q4["total_revenue"]
-        print(f"\n[Q4 = FY−Q1−Q2−Q3]  รายได้={rev4:.1f}  ต้นทุนขาย={q4['cogs_components']:.1f}  "
+        print(f"\n[Q4 = FY−Q1−Q2−Q3]  รายได้={rev4:.1f}  ต้นทุนขาย={q4['cogs']:.1f}  "
               f"กำไรสุทธิ={q4['net_profit_total']:.1f} ล้านบาท")
 
     print("\n=== 7 ตัวชี้วัดรายไตรมาส ===")
