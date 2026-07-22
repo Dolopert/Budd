@@ -102,13 +102,8 @@ def rebuild():
 
     rows, summary = [], []
     for (tk, yr), by_tag in sorted(groups.items()):
-        q4 = E.derive_q4(by_tag)
-        ordered = [by_tag[t] for t in ("Q1", "Q2", "Q3") if t in by_tag]
-        if q4:
-            ordered.append(q4)
         got = []
-        for rec in ordered:
-            m = E.compute_quarter(rec)
+        for rec, m in E.compute_group(by_tag):     # chain ยอดงบดุลไตรมาสก่อนหน้า
             rows.append({
                 "ticker": tk, "year": yr, "quarter": rec["quarter"], "is_annual": False,
                 "revenue": rec["total_revenue"], "cogs": rec["cogs"],

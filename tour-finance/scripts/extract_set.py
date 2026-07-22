@@ -421,6 +421,49 @@ def compute_quarter(rec):
     return m
 
 
+BS_ITEMS = ["trade_receivables", "inventory", "trade_payables", "total_assets", "total_equity"]
+
+
+def compute_group(by_tag):
+    """คำนวณ 7 ตัวชี้วัดของทั้งปี โดย chain ยอดปลายไตรมาสก่อนหน้าเป็นยอดต้นงวด
+
+    งบไตรมาส SET เทียบกับ 'ต้นปี' เสมอ ไม่ใช่ไตรมาสก่อน — จึงต้องต่อลำดับเอง:
+      Q1 avg = (ต้นปี, มี.ค.)   Q2 avg = (มี.ค., มิ.ย.)
+      Q3 avg = (มิ.ย., ก.ย.)   Q4 avg = (ก.ย., ธ.ค.)
+    คืน list ของ (rec, metrics) เรียงตามไตรมาสที่มี
+    """
+    seq = [by_tag[t] for t in ("Q1", "Q2", "Q3") if t in by_tag]
+    q4 = derive_q4(by_tag)
+    if q4:
+        seq.append(q4)
+    if not seq:
+        return []
+    # ยอดต้นงวดของไตรมาสแรกในลำดับ = ยอด 'ต้นปี' (คอลัมน์เทียบของไฟล์ Q1)
+    prev = {it: seq[0].get(it + "_begin") for it in BS_ITEMS}
+    out = []
+    for rec in seq:
+        cur = {it: rec.get(it + "_end") for it in BS_ITEMS}
+        avg = {it: _avg(prev[it], cur[it]) for it in BS_ITEMS}
+        m = metrics(
+            rec["net_profit_total"], rec["total_revenue"], rec["cogs"],
+            avg["trade_receivables"], avg["inventory"], avg["trade_payables"],
+            avg["total_assets"], avg["total_equity"], days_for(rec["quarter"]),
+        )
+        out.append((rec, m))
+        prev = cur
+    return out
+
+
+def _avg(a, b):
+    if a is None and b is None:
+        return None
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return (a + b) / 2
+
+
 def fmt(v, pct=False):
     if v is None:
         return "—"
