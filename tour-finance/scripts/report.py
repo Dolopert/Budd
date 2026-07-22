@@ -27,15 +27,29 @@ SUB = PatternFill("solid", fgColor="DDEBF7")
 BOLD = Font(bold=True)
 THIN = Border(*[Side(style="thin", color="D9D9D9")] * 4)
 
-# ---- ตัวเลขแหล่งภายนอกที่มี (ผู้ใช้ให้ / จาก MD&A) ----
-SETTRADE = {                       # settrade/SETSMART (ผู้ใช้ส่งมา)
-    ("MINT", 2566): dict(DSO=45.18, DIO=24.88, DPO=174.08, CCC=-104.02),
-    ("MINT", 2567): dict(DSO=31.60, DIO=24.16, DPO=153.98, CCC=-98.22),
-    ("MINT", 2568): dict(DSO=36.16, DIO=27.15, DPO=162.67, CCC=-99.36),
-}
-MDA = {                            # ตัวเลขที่บริษัทเปิดเผยเอง (MD&A)
-    ("MINT", 2568): dict(DSO=24, DIO=20, DPO=67, ROA=0.028, ROE=0.099),
-}
+BENCH_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "mapping", "benchmarks.csv"))
+
+
+def load_benchmarks():
+    """อ่านตัวเลขแหล่งภายนอกจาก mapping/benchmarks.csv -> {source: {(ticker,year): {metric: value}}}"""
+    out = {}
+    if not os.path.exists(BENCH_PATH):
+        return out
+    with open(BENCH_PATH, encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            if not row.get("source") or row["source"].startswith("#"):
+                continue
+            try:
+                out.setdefault(row["source"], {}).setdefault(
+                    (row["ticker"], int(row["year"])), {})[row["metric"]] = float(row["value"])
+            except (ValueError, KeyError):
+                continue
+    return out
+
+
+_B = load_benchmarks()
+SETTRADE = _B.get("settrade", {})
+MDA = _B.get("mda", {}) | _B.get("56-1", {})
 
 
 def load():

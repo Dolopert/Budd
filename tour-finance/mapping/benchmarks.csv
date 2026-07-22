@@ -1,0 +1,21 @@
+source,ticker,year,metric,value,note
+# แหล่งภายนอกสำหรับเปรียบเทียบ — เพิ่มแถวเมื่อได้ตัวเลขจาก settrade / 56-1 / MD&A
+# source: settrade | mda | 56-1 | annual
+# metric: DSO DIO DPO CCC NPM ROA ROE DE (หน่วย: วัน หรือ อัตราส่วน เช่น 0.028 = 2.8%)
+settrade,MINT,2566,DSO,45.18,ผู้ใช้ส่งจาก settrade
+settrade,MINT,2566,DIO,24.88,
+settrade,MINT,2566,DPO,174.08,
+settrade,MINT,2566,CCC,-104.02,
+settrade,MINT,2567,DSO,31.60,
+settrade,MINT,2567,DIO,24.16,
+settrade,MINT,2567,DPO,153.98,
+settrade,MINT,2567,CCC,-98.22,
+settrade,MINT,2568,DSO,36.16,
+settrade,MINT,2568,DIO,27.15,
+settrade,MINT,2568,DPO,162.67,
+settrade,MINT,2568,CCC,-99.36,
+mda,MINT,2568,DSO,24,จาก MD&A/56-1 MINT
+mda,MINT,2568,DIO,20,
+mda,MINT,2568,DPO,67,
+mda,MINT,2568,ROA,0.028,
+mda,MINT,2568,ROE,0.099,
