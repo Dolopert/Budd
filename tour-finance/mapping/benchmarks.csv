@@ -25,3 +25,11 @@ mda,MINT,2568,ROE,0.099,
 # CENTEL ไม่เปิดเผย DSO/DIO/DPO/ROA/ROE -> ยืนยันว่าตัวเลขบริษัทเทียบข้ามกันไม่ได้ (ต้องคำนวณเอง)
 mda,CENTEL,2568,current_ratio,0.5,Q3 - CENTEL ไม่รายงาน cash cycle
 mda,CENTEL,2568,IBD_E,1.5,หนี้มีดอกเบี้ย/ทุน (นิยามต่างจาก D/E ของเรา)
+mda,DUSIT,2568,NPM,-0.051,FY MD&A - net profit margin
+mda,DUSIT,2568,ROE,-0.065,attributable to owners
+mda,DUSIT,2568,ROA,0.010,
+mda,DUSIT,2568,DSO,21,average collection FY
+mda,DUSIT,2568,GM,0.315,gross profit margin
+mda,DUSIT,2568,DE,4.68,debt to equity (parent)
+# DUSIT รายงาน DSO=21 vs เรา 53.7 (นิยามลูกหนี้/รายได้ต่าง); NPM ตรง (-5.1 vs -5.3)
+# DUSIT ไม่รายงาน DIO/DPO
