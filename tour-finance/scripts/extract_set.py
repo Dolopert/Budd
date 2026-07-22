@@ -160,6 +160,40 @@ def get_bs_sheets(grids):
     return sheets
 
 
+def get_cf_sheet(grids):
+    """ชีตงบกระแสเงินสด — จับด้วยชื่อชีต/บรรทัดเฉพาะ CF (ไม่ใช่บรรทัดค่าเสื่อมที่ก็มีในงบ PL)"""
+    for g in grids:                              # 1) ชื่อชีต
+        n = norm(g.name)
+        if "กระแสเงินสด" in n or "cashflow" in n.lower() or n.upper().startswith(("CF", "CASH")):
+            return g
+    for g in grids:                              # 2) บรรทัดที่มีเฉพาะในงบกระแสเงินสด
+        if sheet_has_label(g, ["กระแสเงินสดจากกิจกรรมดำเนินงาน",
+                               "เงินสดสุทธิได้มาจากกิจกรรมดำเนินงาน",
+                               "เงินสดสุทธิได้มาจาก(ใช้ไปใน)กิจกรรมดำเนินงาน",
+                               "กระแสเงินสดจากกิจกรรมด าเนินงาน"]):
+            return g
+    return None
+
+
+def find_sum_excluding(sheet, col, aliases, divisor, exclude, row_end=None):
+    """ผลรวมบรรทัดที่ label ขึ้นต้นด้วย aliases แต่ไม่มีคำใน exclude (ใช้กับค่าเสื่อม CF)"""
+    al = [nospace(a) for a in aliases]
+    ex = [nospace(e) for e in exclude]
+    limit = row_end if row_end is not None else sheet.nrows
+    total = 0.0
+    hit = False
+    for r in range(limit):
+        lab = nospace(row_label(sheet, r, col))
+        if not lab or any(e in lab for e in ex):
+            continue
+        if any(lab.startswith(a) for a in al):
+            v = sheet.cell_value(r, col)
+            if isinstance(v, (int, float)) and v != 0:
+                total += v / divisor
+                hit = True
+    return total if hit else None
+
+
 def get_pl_sheet(grids):
     """งบกำไรขาดทุน = ชีตที่มี 'รวมรายได้'; ถ้ามีทั้ง PL(3)/PL(6) เลือก 3 เดือน"""
     pls = [g for g in grids if sheet_has_label(g, ["รวมรายได้", "รายได้รวม"])]
@@ -370,6 +404,19 @@ def extract_file(path):
             missing.append(f"BS:{name}")
         out[name + "_end"] = v_cur
         out[name + "_begin"] = v_beg
+
+    # ค่าเสื่อมราคา จากงบกระแสเงินสด (สำหรับสูตร SET: ต้นทุน = ต้นทุน + ค่าเสื่อม)
+    out["depreciation"] = None
+    cf = get_cf_sheet(grids)
+    if cf is not None:
+        try:
+            cf_col = pl_current_consol_col(cf, year)
+            cf_div = detect_unit_divisor(cf)
+            dspec = cfg["cash_flow"]["depreciation"]
+            out["depreciation"] = find_sum_excluding(
+                cf, cf_col, dspec["aliases"], cf_div, dspec.get("exclude", []))
+        except ExtractError:
+            pass
 
     if missing:
         raise ExtractError(f"{os.path.basename(path)}: หา required item ไม่เจอ -> {missing}")
