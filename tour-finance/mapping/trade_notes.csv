@@ -1,7 +1,0 @@
-ticker,year,DSO_notes,DIO_notes,DPO_notes,source
-# ลูกหนี้/เจ้าหนี้การค้าล้วน จากหมายเหตุประกอบงบ (ฐาน 'CFA-notes')
-# เฉพาะบริษัทที่ดึงหมายเหตุได้สะอาด + verify กับตัวเลขบริษัท (parser fragile รายเจ้า)
-# DUSIT: auto parser (ลูกหนี้การค้าล้วน 602/412 avg 507) -> DSO 20.7 ตรงบริษัท (21)
-DUSIT,2568,20.7,,,notes auto - ตรง MD&A DSO 21
-# MINT: manual (ลูกหนี้การค้าล้วน ~12970 vs รวม 17467) -> DSO ~26 ตรง MD&A (9M 27 / FY 24)
-MINT,2568,26,,,notes manual - ตรง MD&A DSO 24-27

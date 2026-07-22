@@ -137,38 +137,19 @@ def main():
     for col in "BCDEFGHIJ":
         ws.column_dimensions[col].width = 12
 
-    # ---- Sheet 2: WC_3bases (DSO/DIO/DPO 3 ฐาน) ----
-    tn = {}                                          # โหลด CFA-notes (การค้าล้วน) เท่าที่มี
-    tn_path = os.path.join(os.path.dirname(__file__), "..", "mapping", "trade_notes.csv")
-    if os.path.exists(tn_path):
-        with open(tn_path, encoding="utf-8") as fp:
-            for row in csv.DictReader(fp):
-                if row.get("ticker", "").startswith("#") or not row.get("ticker"):
-                    continue
-                tn[(row["ticker"], int(row["year"]))] = row
-
-    ws = wb.create_sheet("WC_3bases")
-    ws.append(["วงจรเงินสดรายปี FY2568 — 3 ฐาน (DSO/DIO/DPO วัน)"])
-    ws.append(["", "CFA-broad (หน้างบดุล ครบ 10)", "", "",
-               "CFA-notes (การค้าล้วน)", "", "", "SET (เทียบเว็บ)", "", ""])
-    ws.append(["บริษัท", "DSO", "DIO", "DPO", "DSO", "DIO", "DPO", "DSO", "DIO", "DPO"])
+    # ---- Sheet 2: SET_vs_CFA ----
+    ws = wb.create_sheet("SET_vs_CFA")
+    ws.append(["DSO/DIO/DPO/CCC รายปี FY2568 — 2 ฐาน"])
+    ws.append(["", "SET basis (เทียบเว็บ)", "", "", "", "CFA basis (ตามงบ)", "", "", ""])
+    ws.append(["บริษัท", "DSO", "DIO", "DPO", "CCC", "DSO", "DIO", "DPO", "CCC"])
     for (tk, yr), bt in sorted(groups.items()):
         if yr != 2568 or "FY" not in bt:
             continue
         s = set_basis(bt["FY"])
         a = annual_cfa(bt)
-        n = tn.get((tk, yr), {})
-        gv = lambda d, k: (float(d[k]) if d.get(k) else None)
-        ws.append([tk,
-                   num(a["DSO"]), num(a["DIO"]), num(a["DPO"]),
-                   gv(n, "DSO_notes"), gv(n, "DIO_notes"), gv(n, "DPO_notes"),
-                   num(s["DSO"]), num(s["DIO"]), num(s["DPO"])])
-    ws.append([])
-    ws.append(["หมายเหตุ: CFA-broad=ลูกหนี้/เจ้าหนี้หน้างบดุล (การค้า+หมุนเวียนอื่น) นิยามเดียวครบ 10 บริษัท",
-               ])
-    ws.append(["CFA-notes=การค้าล้วนจากหมายเหตุ — เฉพาะ DUSIT/MINT ที่ดึงได้สะอาด (verify ตรงบริษัท); "
-               "บริษัทอื่นหมายเหตุคนละ format ต้อง hand-code รายเจ้า"])
-    ws.append(["SET=สูตร settrade (ปลายงวด, รายได้ดำเนินงาน, เจ้าหนี้กว้าง)"])
+        a["CCC"] = a["DSO"] + a["DIO"] - a["DPO"]
+        ws.append([tk, num(s["DSO"]), num(s["DIO"]), num(s["DPO"]), num(s["CCC"]),
+                   num(a["DSO"]), num(a["DIO"]), num(a["DPO"]), num(a["CCC"])])
     style_header(ws, 3)
     for c in ws[2]:
         c.font = BOLD
