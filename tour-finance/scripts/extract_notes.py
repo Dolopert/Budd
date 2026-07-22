@@ -47,8 +47,11 @@ def sum_trade(text, section_kw, line_kw, exclude_kw):
     if i < 0:
         return None, None
     seg = text[i:i + 900]
-    # ตัดหัวตาราง (งบการเงินรวม ... 2568 2567 ...) ออกก่อน เพื่อไม่ให้ปีปนเป็นตัวเลข
-    hdr = re.search(r"25\d\d\s+25\d\d\s+25\d\d\s+25\d\d\s*\(?\s*พัน\s*บาท\s*\)?", seg)
+    # ตรวจหน่วยจากหัวตาราง -> ตัวหารให้เป็นล้านบาท (พันบาท ÷1000, ล้านบาท ÷1)
+    head = text[i:i + 300]
+    div = 1.0 if "ล้านบาท" in head else 1000.0
+    # ตัดหัวตาราง (... 2568 2567 ... พัน/ล้านบาท) ออกก่อน เพื่อไม่ให้ปีปนเป็นตัวเลข
+    hdr = re.search(r"25\d\d\s+25\d\d\s+25\d\d\s+25\d\d\s*\(?\s*(พัน|ล้าน)\s*บาท\s*\)?", seg)
     if hdr:
         seg = seg[hdr.end():]
     # จำกัดถึงท้ายตารางแยกยอด (ก่อน 'หัก ค่าเผื่อ' / 'รวม') กันไปโดนตาราง aging/related-party
@@ -57,7 +60,6 @@ def sum_trade(text, section_kw, line_kw, exclude_kw):
         seg = seg[:end.start()]
     cur = prev = 0.0
     found = False
-    # แบ่ง seg เป็นบล็อกตาม label ลูกหนี้/เจ้าหนี้ แล้วอ่านตัวเลข (คั่นด้วยช่องว่างล้วนหลัง join comma)
     parts = re.split(r"(ลูกหนี้[^\d(]*|เจ้าหนี้[^\d(]*)(?=[\d(])", seg)
     j = 1
     while j < len(parts) - 1:
@@ -70,7 +72,7 @@ def sum_trade(text, section_kw, line_kw, exclude_kw):
             prev += vals[1]
             found = True
         j += 2
-    return (cur, prev) if found else (None, None)
+    return (cur / div, prev / div) if found else (None, None)     # -> ล้านบาท
 
 
 def extract(path):
@@ -91,7 +93,7 @@ def main(argv):
         return 1
     for p in argv[1:]:
         r = extract(p)
-        f = lambda x: f"{x/1000:.1f} ลบ." if x is not None else "—"
+        f = lambda x: f"{x:.1f} ลบ." if x is not None else "—"
         print(f"{os.path.basename(os.path.dirname(p))}: "
               f"ลูกหนี้การค้าล้วน ปลาย={f(r['trade_ar_end'])} ต้น={f(r['trade_ar_begin'])} | "
               f"เจ้าหนี้การค้าล้วน ปลาย={f(r['trade_ap_end'])} ต้น={f(r['trade_ap_begin'])}")
