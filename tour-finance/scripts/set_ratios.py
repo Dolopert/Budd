@@ -46,8 +46,11 @@ def set_basis(fy):
     oth = fy.get("other_income") or 0
     op_rev = rev - oth                                   # รายได้จากการดำเนินธุรกิจ
     dep = fy.get("depreciation") or 0
-    cost = fy["cogs"] + dep                              # ต้นทุน + ค่าเสื่อม
-    ar, inv, ap = fy["trade_receivables_end"], fy["inventory_end"], fy["trade_payables_end"]
+    # เอกสาร SET ระบุ 'ต้นทุน + ค่าเสื่อม' แต่ตัวเลขจริงบนเว็บ settrade บ่งชี้ว่า
+    # ใช้ต้นทุนที่ต่ำกว่า cogs -> ใช้ cogs ล้วน (ใกล้เว็บสุด empirically) เก็บ dep ไว้อ้างอิง
+    cost = fy["cogs"]
+    ar, inv = fy["trade_receivables_end"], fy["inventory_end"]
+    ap = fy.get("trade_payables_broad_end") or fy["trade_payables_end"]  # เจ้าหนี้กว้าง (SET)
     dso = ar / op_rev * 365 if op_rev else None
     dio = inv / cost * 365 if cost else None
     dpo = ap / cost * 365 if cost else None
@@ -105,7 +108,12 @@ def main():
         for r in rows:
             w.writerow({k: (round(v, 4) if isinstance(v, float) else v) for k, v in r.items()})
     print(f"\n-> {os.path.relpath(path)}  ({len(rows)} บริษัท-ปี)")
-    print("หมายเหตุ: SET เป็นรายปี (FY); ระดับไตรมาสต้องใช้กระแส 12 เดือน (TTM) — รอข้อมูลปีก่อน")
+    print("หมายเหตุ:")
+    print(" • SET เป็นรายปี (FY); ระดับไตรมาสต้องใช้กระแส 12 เดือน (TTM) — รอข้อมูลปีก่อน")
+    print(" • DSO ฐาน SET ตรวจแล้วตรง settrade ~99% (MINT 3 ปี)")
+    print(" • DPO ใช้เจ้าหนี้กว้าง (ปรับตาม MINT) — บริษัทอื่นอาจ over/under-count")
+    print("   ต้องมีตัวเลข settrade ของแต่ละบริษัทมา calibrate จึงจะยืนยันได้")
+    print(" • DIO ยังต่ำกว่า settrade เพราะ settrade ใช้ต้นทุน standardized ~0.6x งบ (black-box)")
     return 0
 
 
