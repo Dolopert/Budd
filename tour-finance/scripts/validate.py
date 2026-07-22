@@ -45,7 +45,7 @@ def close(a, b, rel=0.01, absol=1.0):
 
 def main():
     groups = load_groups()
-    warns, checks = [], 0
+    warns, notes, checks = [], [], 0
 
     def warn(tag, msg):
         warns.append(f"  ⚠ [{tag}] {msg}")
@@ -59,12 +59,18 @@ def main():
 
         # B. ยอดต้นปีต้องเท่ากันข้าม Q1/Q2/Q3
         for item in E.BS_ITEMS:
-            vals = [(t, bt[t].get(item + "_begin")) for t in ("Q1", "Q2", "Q3") if t in bt]
-            vals = [(t, v) for t, v in vals if v is not None]
+            # งบไตรมาส Q1/Q2/Q3 (unaudited) ต้องแสดงยอด 'ต้นปี' เท่ากันเป๊ะ
+            qv = [(t, bt[t].get(item + "_begin")) for t in ("Q1", "Q2", "Q3") if t in bt]
+            qv = [(t, v) for t, v in qv if v is not None]
             checks += 1
-            if len(vals) >= 2 and not all(close(v, vals[0][1]) for _, v in vals):
+            if len(qv) >= 2 and not all(close(v, qv[0][1]) for _, v in qv):
                 warn(f"{tk} {yr}", f"ยอดต้นปี '{item}' ไม่ตรงข้ามไตรมาส: "
-                                   + ", ".join(f"{t}={v:.0f}" for t, v in vals))
+                                   + ", ".join(f"{t}={v:.0f}" for t, v in qv))
+            # งบรายปี (audited) อาจ restate ยอดปีก่อน — แจ้งเป็น note ไม่ใช่ error
+            fyb = bt.get("FY", {}).get(item + "_begin") if "FY" in bt else None
+            if qv and fyb is not None and not close(fyb, qv[0][1]):
+                notes.append(f"  ℹ [{tk} {yr}] restatement: '{item}' ต้นปี "
+                             f"ไตรมาส={qv[0][1]:.0f} vs รายปี(audited)={fyb:.0f}")
 
         # C+D. ต่อไตรมาส (รวม Q4 derived)
         rows = E.compute_group(bt)
@@ -98,10 +104,13 @@ def main():
 
     print(f"\n=== ตรวจ {checks} รายการ, {len(groups)} บริษัท-ปี ===")
     if warns:
-        print(f"พบข้อสังเกต {len(warns)} จุด:")
+        print(f"พบข้อผิดพลาด {len(warns)} จุด:")
         print("\n".join(warns))
     else:
-        print("✓ ผ่านทุกการตรวจสอบ ไม่พบ anomaly")
+        print("✓ ผ่านทุกการตรวจสอบ ไม่พบ error")
+    if notes:
+        print(f"\nℹ หมายเหตุ (ไม่ใช่ error) {len(notes)} จุด — งบ audited restate ยอดปีก่อน:")
+        print("\n".join(notes))
     return 1 if warns else 0
 
 
