@@ -1,0 +1,62 @@
+# Mapping: canonical concept -> ชื่อรายการที่เป็นไปได้ในงบ SET
+#
+# match:
+#   exact  = label หลัง .strip() ต้องตรงเป๊ะ (ใช้กับบรรทัด "รวม..." กันชนกับ subtotal)
+#   prefix = label ขึ้นต้นด้วย alias (ใช้กับบรรทัดที่อาจมีสัญลักษณ์/ฯ ต่อท้าย)
+#
+# เพิ่ม alias ใหม่ได้เรื่อยๆ เมื่อเจอบริษัทที่ใช้ชื่อต่าง — สคริปต์จะ fail-loud
+# ถ้าหา canonical ที่ required ไม่เจอ (ไม่เดา ไม่ใส่ 0 เงียบๆ)
+
+income_statement:               # ชีต PL
+  total_revenue:
+    match: exact
+    required: true
+    aliases: ["รวมรายได้", "รายได้รวม"]
+  cogs_components:              # ต้นทุนขาย = ผลรวมของบรรทัดเหล่านี้ที่พบ
+    match: prefix
+    required: true
+    sum: true
+    aliases:
+      - "ต้นทุนการประกอบกิจการโรงแรม"     # CENTEL
+      - "ต้นทุนโดยตรงของกิจการโรงแรม"     # MINT
+      - "ต้นทุนขายอาหารและเครื่องดื่ม"
+      - "ต้นทุนขายและบริการ"
+  selling_admin:               # ค่าใช้จ่ายขาย+บริหาร (ใช้ตอน reverse-eng DPO)
+    match: prefix
+    required: false
+    sum: true
+    aliases: ["ค่าใช้จ่ายในการขาย", "ค่าใช้จ่ายในการบริหาร", "ค่าใช้จ่ายในการขายและบริหาร"]
+  net_profit_total:            # กำไรสุทธิรวม (รวมส่วนได้เสียที่ไม่มีอำนาจควบคุม)
+    match: prefix
+    required: true
+    aliases: ["กำไรสำหรับงวด", "กำไรสำหรับปี", "กำไร(ขาดทุน)สำหรับงวด", "กำไร(ขาดทุน)สำหรับปี", "กำไรสุทธิ"]
+  net_profit_parent:           # กำไรส่วนที่เป็นของผู้ถือหุ้นบริษัทแม่
+    match: prefix
+    required: false
+    aliases: ["ส่วนที่เป็นของผู้ถือหุ้นบริษัทฯ", "ส่วนที่เป็นของผู้ถือหุ้นของบริษัทฯ", "ส่วนที่เป็นของบริษัทใหญ่"]
+
+balance_sheet:                  # ชีต BS
+  trade_receivables:
+    match: prefix
+    required: true
+    aliases: ["ลูกหนี้การค้าและลูกหนี้หมุนเวียนอื่น", "ลูกหนี้การค้าและลูกหนี้อื่น", "ลูกหนี้การค้า"]
+  inventory:
+    match: prefix
+    required: true
+    aliases: ["สินค้าคงเหลือ"]
+  trade_payables:
+    match: prefix
+    required: true
+    aliases: ["เจ้าหนี้การค้าและเจ้าหนี้หมุนเวียนอื่น", "เจ้าหนี้การค้าและเจ้าหนี้อื่น", "เจ้าหนี้การค้า"]
+  total_assets:
+    match: exact
+    required: true
+    aliases: ["รวมสินทรัพย์"]
+  total_liabilities:           # ใช้ตรวจ balance check
+    match: exact
+    required: true
+    aliases: ["รวมหนี้สิน"]
+  total_equity:
+    match: exact
+    required: true
+    aliases: ["รวมส่วนของผู้ถือหุ้น", "ส่วนของเจ้าของรวม", "รวมส่วนของเจ้าของ"]
