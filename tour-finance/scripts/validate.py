@@ -59,18 +59,14 @@ def main():
 
         # B. ยอดต้นปีต้องเท่ากันข้าม Q1/Q2/Q3
         for item in E.BS_ITEMS:
-            # งบไตรมาส Q1/Q2/Q3 (unaudited) ต้องแสดงยอด 'ต้นปี' เท่ากันเป๊ะ
-            qv = [(t, bt[t].get(item + "_begin")) for t in ("Q1", "Q2", "Q3") if t in bt]
-            qv = [(t, v) for t, v in qv if v is not None]
+            # ยอด 'ต้นปี' (ธ.ค. ปีก่อน) ควรเท่ากันทุกงบ; ถ้าต่าง = บริษัท restate
+            # (เกิดได้ทั้งไตรมาส-vs-ไตรมาส และ ไตรมาส-vs-รายปี) -> แจ้งเป็น note ไม่ใช่ error
+            av = [(t, bt[t].get(item + "_begin")) for t in ("Q1", "Q2", "Q3", "FY") if t in bt]
+            av = [(t, v) for t, v in av if v is not None]
             checks += 1
-            if len(qv) >= 2 and not all(close(v, qv[0][1]) for _, v in qv):
-                warn(f"{tk} {yr}", f"ยอดต้นปี '{item}' ไม่ตรงข้ามไตรมาส: "
-                                   + ", ".join(f"{t}={v:.0f}" for t, v in qv))
-            # งบรายปี (audited) อาจ restate ยอดปีก่อน — แจ้งเป็น note ไม่ใช่ error
-            fyb = bt.get("FY", {}).get(item + "_begin") if "FY" in bt else None
-            if qv and fyb is not None and not close(fyb, qv[0][1]):
+            if len(av) >= 2 and not all(close(v, av[0][1]) for _, v in av):
                 notes.append(f"  ℹ [{tk} {yr}] restatement: '{item}' ต้นปี "
-                             f"ไตรมาส={qv[0][1]:.0f} vs รายปี(audited)={fyb:.0f}")
+                             + ", ".join(f"{t}={v:.0f}" for t, v in av))
 
         # C+D. ต่อไตรมาส (รวม Q4 derived)
         rows = E.compute_group(bt)

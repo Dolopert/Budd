@@ -153,8 +153,10 @@ BS_TOTAL_LABELS = ["รวมสินทรัพย์", "รวมหนี�
 def get_bs_sheets(grids):
     """คืน list ชีตงบดุล — บางบริษัทแยกงบดุลเป็นหลายชีต (DUSIT: สินทรัพย์ / หนี้สิน+ทุน)"""
     sheets = [g for g in grids if sheet_has_label(g, BS_TOTAL_LABELS)]
-    if not sheets:
-        sheets = [g for g in grids if norm(g.name).upper().startswith(("BS", "FS"))]
+    if not sheets:                                     # เผื่อชื่อชีต (รวมชื่อไทย)
+        sheets = [g for g in grids
+                  if norm(g.name).upper().startswith(("BS", "FS"))
+                  or "ฐานะการเงิน" in norm(g.name) or "งบดุล" in norm(g.name)]
     if not sheets:
         raise ExtractError(f"ไม่พบชีตงบดุล — มีชีต: {[g.name for g in grids]}")
     return sheets
@@ -194,17 +196,31 @@ def find_sum_excluding(sheet, col, aliases, divisor, exclude, row_end=None):
     return total if hit else None
 
 
+def _is_cumulative_pl(name):
+    """ชื่อชีตที่บ่งบอกว่าเป็นงบสะสม (6/9/12 เดือน) — ควรหลีกเลี่ยงถ้ามีงบ 3 เดือน"""
+    n = norm(name).lower()
+    return any(k in n for k in ["(6", "(9", "6m", "9m", "6month", "9month",
+                                "6-month", "9-month", "หกเดือน", "เก้าเดือน", "(6mths", "(9mths"])
+
+
+def _is_three_month(name):
+    n = norm(name).lower()
+    return any(k in n for k in ["(3)", "(3m", "3-month", "3month", "3 month", "สามเดือน", "(3 "])
+
+
 def get_pl_sheet(grids):
-    """งบกำไรขาดทุน = ชีตที่มี 'รวมรายได้'; ถ้ามีทั้ง PL(3)/PL(6) เลือก 3 เดือน"""
+    """งบกำไรขาดทุน = ชีตที่มี 'รวมรายได้' หรือชื่อชีตบ่งชี้; ถ้ามีทั้ง 3M/6M เลือก 3 เดือน"""
     pls = [g for g in grids if sheet_has_label(g, ["รวมรายได้", "รายได้รวม"])]
-    if not pls:
-        pls = [g for g in grids if norm(g.name).upper().startswith("PL")]
+    if not pls:                                        # เผื่อไม่มีบรรทัด 'รวมรายได้' (OHTL) / ชื่อไทย (MANRIN)
+        pls = [g for g in grids if norm(g.name).upper().startswith("PL")
+               or "กำไรขาดทุน" in norm(g.name)]
     if not pls:
         raise ExtractError(f"ไม่พบชีตงบกำไรขาดทุน — มีชีต: {[g.name for g in grids]}")
-    for g in pls:                                     # ชอบชีต 3 เดือนที่ระบุชัด '(3)'
-        if "(3)" in g.name:
+    for g in pls:                                      # 1) ชอบชีต 3 เดือนที่ระบุชัด
+        if _is_three_month(g.name):
             return g
-    return pls[0]                                     # ที่เหลือ = ชีตเดียว/รวม (row-window ตัดชุดสะสม)
+    non_cum = [g for g in pls if not _is_cumulative_pl(g.name)]   # 2) เลี่ยงงบสะสม
+    return (non_cum or pls)[0]
 
 
 # ---------- unit detection ----------
@@ -256,6 +272,16 @@ def period_header(sheet):
     raise ExtractError("หาแถว header ของงวดไม่ได้ (ไม่พบเลขปี/วันที่ >=2 ช่อง)")
 
 
+def detect_cumulative(pl_sheet):
+    """จริงถ้างบไตรมาสรายงานแบบสะสม (YTD 6/9 เดือน) — บางบริษัท (MANRIN) ไม่มีคอลัมน์ 3 เดือน"""
+    blob = " ".join(norm(pl_sheet.cell_value(r, c))
+                    for r in range(min(pl_sheet.nrows, 8)) for c in range(pl_sheet.ncols))
+    if any(k in blob for k in ["สำหรับปี", "รอบปี", "สิบสองเดือน"]):
+        return False                                   # งบรายปี = FY (จัดการแยก)
+    return ("หกเดือน" in blob or "เก้าเดือน" in blob or
+            "6 เดือน" in blob or "9 เดือน" in blob)
+
+
 def detect_period(pl_sheet):
     """คืน (quarter_label, year_be, is_annual) — อ่านปีจากแถว header เท่านั้น
     (กันเลขอื่นที่ไม่ใช่ปีมารบกวน) และดูชนิดงวดจากข้อความหัวตาราง
@@ -291,12 +317,21 @@ def bs_date_cols(bs_sheet, year_be):
 
 # ---------- line-item lookup ----------
 def pl_first_statement_end(pl_sheet, label_upto):
-    """งบไตรมาสมีงบกำไรขาดทุน 2 ชุด (3 เดือน + สะสม) ในชีตเดียว —
-    คืนแถวสิ้นสุดของชุดแรก = แถว 'รวมรายได้' ครั้งที่ 2 (ถ้าไม่มี = ทั้งชีต)
+    """งบไตรมาสมีงบกำไรขาดทุน 2 ชุด (3 เดือน + สะสม) ในชีตเดียว — คืนแถวสิ้นสุดของชุดแรก
+    ใช้ 'รวมรายได้' ครั้งที่ 2; ถ้าไม่มี (MANRIN) ใช้หัวข้องวด 'สำหรับงวด/รอบ' ครั้งที่ 2
     """
     rev_rows = [r for r in range(pl_sheet.nrows)
                 if nospace(row_label(pl_sheet, r, label_upto)) in ("รวมรายได้", "รายได้รวม")]
-    return rev_rows[1] if len(rev_rows) >= 2 else pl_sheet.nrows
+    if len(rev_rows) >= 2:
+        return rev_rows[1]
+    # ไม่มี 'รวมรายได้' 2 ชุด -> หาหัวข้อ 'งบกำไรขาดทุน' ครั้งที่ 2 (จุดเริ่มงบชุดถัดไป)
+    # ไม่นับ '(ต่อ)' ซึ่งเป็นส่วนต่อของงบชุดเดียวกัน (OCI)
+    title_rows = []
+    for r in range(pl_sheet.nrows):
+        blob = " ".join(norm(pl_sheet.cell_value(r, c)) for c in range(min(pl_sheet.ncols, 4)))
+        if "งบกำไรขาดทุน" in blob and "ต่อ" not in blob:
+            title_rows.append(r)
+    return title_rows[1] if len(title_rows) >= 2 else pl_sheet.nrows
 
 
 def find_value(sheet, col, spec, divisor, row_end=None):
@@ -361,8 +396,9 @@ def extract_file(path):
         raise ExtractError(f"{os.path.basename(path)}: หาคอลัมน์งวดของงบดุลไม่ได้")
 
     out = {"file": os.path.basename(path), "ticker": detect_company(pl),
-           "quarter": q, "year": year,
-           "is_annual": is_annual, "pl_unit_div": pl_div}
+           "quarter": q, "year": year, "is_annual": is_annual,
+           "is_cumulative": (detect_cumulative(pl) if not is_annual else False),
+           "pl_unit_div": pl_div}
     missing = []
 
     # income statement (เฉพาะงบชุดแรก = 3 เดือน; กันข้ามไปงบสะสม)
@@ -379,11 +415,15 @@ def extract_file(path):
 
     # total revenue: งบ multi-step (DUSIT) 'รวมรายได้' = ผลรวมรายได้อื่นเท่านั้น
     # ถ้ารายได้หลักบรรทัดเดียว > 'รวมรายได้' -> total = รายได้หลัก + รวมรายได้(อื่น)
+    # ถ้าไม่มี 'รวมรายได้' เลย (OHTL) -> รายได้หลัก + รายได้อื่น
     R, M = out.get("total_revenue"), out.get("revenue_main")
+    oth0 = out.get("other_income") or 0
     if R is not None and M is not None and M > R:
         out["total_revenue"] = M + R
     elif R is None and M is not None:
-        out["total_revenue"] = M
+        out["total_revenue"] = M + oth0
+    if out.get("total_revenue") is not None and "PL:total_revenue" in missing:
+        missing.remove("PL:total_revenue")             # fallback สำเร็จ
 
     # COGS: ใช้ subtotal ถ้ามี (ASIA) มิฉะนั้นผลรวม components (CENTEL/ERW); เป็นค่าบวกเสมอ
     cogs = out.get("cogs_subtotal") or out.get("cogs_components")
@@ -469,8 +509,6 @@ def compute_quarter(rec):
 
 
 BS_ITEMS = ["trade_receivables", "inventory", "trade_payables", "total_assets", "total_equity"]
-
-
 def compute_group(by_tag):
     """คำนวณ 7 ตัวชี้วัดของทั้งปี โดย chain ยอดปลายไตรมาสก่อนหน้าเป็นยอดต้นงวด
 
