@@ -2,3 +2,7 @@
 output/*_5yr.xlsx
 # ยกเว้นไฟล์ต้นแบบ MINT (ground truth)
 !output/MINT_test_5yr_v4.xlsx
+
+# python cache
+__pycache__/
+*.pyc

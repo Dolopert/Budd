@@ -21,6 +21,7 @@ import re
 import sys
 import glob
 import xlrd
+import openpyxl
 import yaml
 
 MAP_PATH = os.path.join(os.path.dirname(__file__), "..", "mapping", "line_items.yml")
@@ -47,12 +48,61 @@ def nospace(s):
     return re.sub(r"\s+", "", str(s).strip())
 
 
-# ---------- sheet lookup (ทนต่อชื่อชีตที่มีช่องว่างต่อท้าย เช่น 'PL ') ----------
-def get_sheet(wb, target):
-    for sh in wb.sheets():
-        if norm(sh.name).upper() == target.upper():
-            return sh
-    raise ExtractError(f"ไม่พบชีต '{target}' (มีชีต: {wb.sheet_names()})")
+# ---------- unified reader: รองรับทั้ง .xls (xlrd) และ .xlsx (openpyxl) ----------
+class Grid:
+    """หน้าตาชีตแบบ 0-based เหมือนกันไม่ว่าไฟล์ต้นทางเป็น .xls หรือ .xlsx"""
+    def __init__(self, name, nrows, ncols, getter):
+        self.name = name
+        self.nrows = nrows
+        self.ncols = ncols
+        self._get = getter
+
+    def cell_value(self, r, c):
+        v = self._get(r, c)
+        return "" if v is None else v
+
+
+def open_book(path):
+    """คืน list ของ Grid (0-based) จากไฟล์ .xls หรือ .xlsx"""
+    if path.lower().endswith((".xlsx", ".xlsm")):
+        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+        grids = []
+        for ws in wb.worksheets:
+            nr, nc = ws.max_row or 0, ws.max_column or 0
+            data = [[cell.value for cell in row] for row in ws.iter_rows()]
+
+            def make_getter(d):
+                def g(r, c):
+                    if 0 <= r < len(d) and 0 <= c < len(d[r]):
+                        return d[r][c]
+                    return None
+                return g
+            grids.append(Grid(ws.title, nr, nc, make_getter(data)))
+        return grids
+    # .xls
+    wb = xlrd.open_workbook(path)
+    return [Grid(sh.name, sh.nrows, sh.ncols,
+                 (lambda s: (lambda r, c: s.cell_value(r, c)))(sh))
+            for sh in wb.sheets()]
+
+
+# ---------- fuzzy sheet lookup ----------
+def get_bs_sheet(grids):
+    for g in grids:
+        if norm(g.name).upper().startswith("BS"):
+            return g
+    raise ExtractError(f"ไม่พบชีตงบดุล (BS*) — มีชีต: {[g.name for g in grids]}")
+
+
+def get_pl_sheet(grids):
+    """เลือกชีตงบกำไรขาดทุน; ถ้ามีทั้ง PL(3)/PL(6) ให้เลือก 3 เดือน"""
+    pls = [g for g in grids if norm(g.name).upper().startswith("PL")]
+    if not pls:
+        raise ExtractError(f"ไม่พบชีตงบกำไรขาดทุน (PL*) — มีชีต: {[g.name for g in grids]}")
+    for g in pls:                       # ชอบชีต 3 เดือนที่ระบุชัด '(3)'
+        if "(3)" in g.name:
+            return g
+    return pls[0]                        # ที่เหลือ = ชีตเดียว/รวม (row-window ตัดชุดสะสมเอง)
 
 
 # ---------- unit detection ----------
@@ -71,53 +121,69 @@ def detect_unit_divisor(sheet):
     raise ExtractError("ตรวจหน่วยไม่ได้ (ไม่พบ 'หน่วย ... บาท' ใน header)")
 
 
-# ---------- period detection ----------
+# ---------- header-row detection (ใช้ร่วมกันทั้ง period + column) ----------
+DATE_RE = re.compile(r"\d{1,2}\s+\S+\s+(25\d\d)")
+
+
+def year_of(v):
+    """คืนปี พ.ศ. ถ้า cell เป็น 'ตัวบอกงวด' (เลขปีล้วน หรือวันที่เต็ม) มิฉะนั้น None"""
+    if isinstance(v, (int, float)) and 2500 <= v <= 2600:
+        return int(v)
+    t = norm(v)
+    if re.fullmatch(r"25\d\d(\.0)?", t):
+        return int(float(t))
+    m = DATE_RE.search(t)                          # '31 มีนาคม 2568'
+    return int(m.group(1)) if m else None
+
+
+def period_header(sheet):
+    """หาแถว header ของงวด = แถวแรกที่มี 'ตัวบอกงวด' >= 2 ช่อง
+    คืน (row, [cols เรียงซ้าย->ขวา], [ปีของแต่ละ col])
+    คอลัมน์ซ้ายสุด = งบรวมงวดปัจจุบัน; ถัดไป = งบรวมงวดเทียบ (ต้นงวด/ปีก่อน)
+    """
+    for r in range(min(sheet.nrows, 16)):
+        cols, yrs = [], []
+        for c in range(sheet.ncols):
+            y = year_of(sheet.cell_value(r, c))
+            if y is not None:
+                cols.append(c)
+                yrs.append(y)
+        if len(cols) >= 2:
+            return r, cols, yrs
+    raise ExtractError("หาแถว header ของงวดไม่ได้ (ไม่พบเลขปี/วันที่ >=2 ช่อง)")
+
+
 def detect_period(pl_sheet):
-    """คืน (quarter_label, year_be, is_annual) จากหัวข้องบกำไรขาดทุน"""
-    for r in range(min(pl_sheet.nrows, 12)):
-        for c in range(pl_sheet.ncols):
-            t = norm(pl_sheet.cell_value(r, c))
-            m = re.search(r"สิ้นสุดวันที่\s*\d{1,2}\s*(\S+)\s*(25\d\d)", t)
-            if not m:
-                continue
-            month, year = m.group(1), int(m.group(2))
-            is_annual = "สำหรับปี" in t or "รอบปี" in t
-            q = THAI_MONTH_Q.get(month, "Q4")
-            return q, year, is_annual
-    raise ExtractError("ตรวจงวด (ไตรมาส/ปี) ไม่ได้จากหัวข้องบ")
+    """คืน (quarter_label, year_be, is_annual) — อ่านปีจากแถว header เท่านั้น
+    (กันเลขอื่นที่ไม่ใช่ปีมารบกวน) และดูชนิดงวดจากข้อความหัวตาราง
+    """
+    _, _, yrs = period_header(pl_sheet)
+    year = max(yrs)                                # งวดปัจจุบัน = ปีมากสุดในแถว header
+    blob = " ".join(norm(pl_sheet.cell_value(r, c))
+                    for r in range(min(pl_sheet.nrows, 16)) for c in range(pl_sheet.ncols))
+    is_annual = any(k in blob for k in ["สำหรับปี", "รอบปี", "สิบสองเดือน", "สำหรับงวดสิบสอง"])
+    if is_annual:
+        return "Q4", year, True
+    month = next((m for m in THAI_MONTH_Q if m in blob), None)
+    if month is None:
+        raise ExtractError("ตรวจเดือนสิ้นงวดไม่ได้จากหัวข้องบ")
+    return THAI_MONTH_Q[month], year, False
 
 
-# ---------- column detection ----------
+# ---------- column selection (งบการเงินรวม = คอลัมน์ซ้ายสุดของแต่ละงวด) ----------
 def pl_current_consol_col(pl_sheet, year_be):
-    """คอลัมน์ 'งบการเงินรวม + ปีปัจจุบัน' = คอลัมน์ปีแรกสุดที่มีค่า == year_be"""
-    for r in range(min(pl_sheet.nrows, 12)):
-        cols = [c for c in range(pl_sheet.ncols)
-                if str(pl_sheet.cell_value(r, c)).strip() in (str(year_be), f"{year_be}.0")]
-        if len(cols) >= 1:
-            return cols[0]                       # ตัวแรก = งบรวม งวดปัจจุบัน
-    raise ExtractError("หาคอลัมน์งบรวมงวดปัจจุบัน (PL) ไม่ได้")
+    """คอลัมน์งบรวม-งวดปัจจุบัน = คอลัมน์ตัวบอกงวดซ้ายสุดที่ปี == year_be"""
+    _, cols, yrs = period_header(pl_sheet)
+    for c, y in zip(cols, yrs):
+        if y == year_be:
+            return c
+    return cols[0]
 
 
 def bs_date_cols(bs_sheet, year_be):
-    """คืน (col_current, col_begin) ของงบการเงินรวม
-
-    งบไตรมาสใช้วันที่เต็ม ('31 มีนาคม 2568'); งบรายปีตรวจสอบแล้วใช้เลขปีล้วน
-    ('2568'/'2567') — รับทั้งสองแบบ
-    """
-    date_re = re.compile(r"\d{1,2}\s+\S+\s+25\d\d")
-
-    def is_period_header(v):
-        t = norm(v)
-        if date_re.search(t):
-            return True
-        return t in (str(year_be), f"{year_be}.0", str(year_be - 1), f"{year_be - 1}.0")
-
-    for r in range(min(bs_sheet.nrows, 12)):
-        cols = [c for c in range(bs_sheet.ncols)
-                if is_period_header(bs_sheet.cell_value(r, c))]
-        if len(cols) >= 2:
-            return cols[0], cols[1]              # [รวม-ปัจจุบัน, รวม-ต้นงวด, เฉพาะ..., ...]
-    raise ExtractError("หาคอลัมน์วันที่/ปี (BS) ไม่ได้")
+    """คืน (col_current, col_begin) ของงบการเงินรวม = สองคอลัมน์งวดซ้ายสุด"""
+    _, cols, _ = period_header(bs_sheet)
+    return cols[0], cols[1]
 
 
 # ---------- line-item lookup ----------
@@ -166,9 +232,9 @@ def find_value(sheet, col, spec, divisor, row_end=None):
 def extract_file(path):
     """ดึง canonical values จากไฟล์ SET หนึ่งไฟล์ -> dict"""
     cfg = load_map()
-    wb = xlrd.open_workbook(path)
-    pl = get_sheet(wb, "PL")
-    bs = get_sheet(wb, "BS")
+    grids = open_book(path)
+    pl = get_pl_sheet(grids)
+    bs = get_bs_sheet(grids)
 
     q, year, is_annual = detect_period(pl)
     pl_div = detect_unit_divisor(pl)
@@ -276,8 +342,8 @@ def main(argv):
         print(__doc__)
         return 1
     if argv[1] == "--dir":
-        files = sorted(glob.glob(os.path.join(argv[2], "*.XLS")) +
-                       glob.glob(os.path.join(argv[2], "*.xls")))
+        pats = ["*.XLS", "*.xls", "*.XLSX", "*.xlsx", "*.XLSM", "*.xlsm"]
+        files = sorted({f for p in pats for f in glob.glob(os.path.join(argv[2], p))})
     else:
         files = argv[1:]
     if not files:
