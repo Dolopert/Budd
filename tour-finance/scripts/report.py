@@ -84,14 +84,15 @@ def annual_cfa(bt):
         b = beg.get(k + "_begin");  e = fy.get(k + "_end")
         return (b + e) / 2 if (b is not None and e is not None) else e
     ta, te = avg("total_assets"), avg("total_equity")
+    op_rev = rev - (fy.get("other_income") or 0)     # รายได้ดำเนินงาน (ไม่รวมรายได้อื่น)
     return dict(
-        NPM=npt / rev, ROA=npt / ta, ROE=npt / te,
+        NPM=npt / rev, ROA=npt / ta, ROE=npt / te,   # NPM/ROA/ROE ใช้รายได้รวม (มาตรฐาน)
         ROE_parent=(npp / te if npp is not None else None),
         DSO=avg("trade_receivables") / rev * 365,
         DIO=avg("inventory") / cogs * 365,
         DPO=avg("trade_payables") / cogs * 365,
         DE=fy["total_liabilities_end"] / fy["total_equity_end"],
-        GM=(rev - cogs) / rev,
+        GM=(op_rev - cogs) / op_rev,                 # GM หารด้วยรายได้ดำเนินงาน (ถูกต้องกว่า)
     ) | {"CCC": None}
 
 
