@@ -33,6 +33,32 @@ class ExtractError(Exception):
     pass
 
 
+# ชื่อบริษัท (คีย์เวิร์ด) -> ticker กลุ่ม TOUR
+TICKER_KEYWORDS = {
+    "ASIA": ["เอเชียโฮเต็ล", "เอเชีย โฮเต็ล", "asia hotel"],
+    "CENTEL": ["เซ็นทรัลพลาซา", "central plaza", "centara"],
+    "DUSIT": ["ดุสิตธานี", "ดุสิต", "dusit"],
+    "ERW": ["เอราวัณ", "erawan"],
+    "MANRIN": ["แมนดาริน", "mandarin"],
+    "MINT": ["ไมเนอร์ อินเตอร์เนชั่นแนล", "ไมเนอร์", "minor"],
+    "OHTL": ["โอเรียนเต็ล", "โอเอชทีแอล", "ohtl", "oriental"],
+    "SHANG": ["แชงกรี", "shangri"],
+    "SHR": ["เอส โฮเทล", "เอสโฮเทล", "s hotels", "s hotel"],
+    "VRANDA": ["วีรันดา", "veranda"],
+}
+
+
+def detect_company(pl_sheet):
+    """เดา ticker จากชื่อบริษัทในหัวงบ (5 แถวแรก); None ถ้าไม่รู้จัก"""
+    head = " ".join(norm(pl_sheet.cell_value(r, c)).lower()
+                    for r in range(min(pl_sheet.nrows, 5))
+                    for c in range(min(pl_sheet.ncols, 6)))
+    for ticker, kws in TICKER_KEYWORDS.items():
+        if any(k.lower() in head for k in kws):
+            return ticker
+    return None
+
+
 def load_map():
     with open(MAP_PATH, encoding="utf-8") as f:
         return yaml.safe_load(f)
@@ -267,7 +293,8 @@ def extract_file(path):
     pl_col = pl_current_consol_col(pl, year)
     bs_cur, bs_beg = bs_date_cols(bs, year)
 
-    out = {"file": os.path.basename(path), "quarter": q, "year": year,
+    out = {"file": os.path.basename(path), "ticker": detect_company(pl),
+           "quarter": q, "year": year,
            "is_annual": is_annual, "pl_unit_div": pl_div, "bs_unit_div": bs_div}
     missing = []
 
