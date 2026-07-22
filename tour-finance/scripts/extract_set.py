@@ -18,6 +18,7 @@ extract_set.py — ดึงข้อมูลงบการเงินจา�
 """
 import os
 import re
+import io
 import sys
 import glob
 import xlrd
@@ -88,10 +89,24 @@ class Grid:
         return "" if v is None else v
 
 
+def _is_xlsx(path):
+    """ดูจาก magic bytes ไม่ใช่นามสกุล (บางไฟล์ .XLS จริงๆ เป็น xlsx/zip)"""
+    with open(path, "rb") as f:
+        sig = f.read(4)
+    if sig[:2] == b"PK":                 # zip -> xlsx/xlsm
+        return True
+    if sig == b"\xD0\xCF\x11\xE0":       # OLE2 -> xls เก่า
+        return False
+    return path.lower().endswith((".xlsx", ".xlsm"))
+
+
 def open_book(path):
-    """คืน list ของ Grid (0-based) จากไฟล์ .xls หรือ .xlsx"""
-    if path.lower().endswith((".xlsx", ".xlsm")):
-        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    """คืน list ของ Grid (0-based) จากไฟล์ .xls หรือ .xlsx (ตรวจชนิดจาก magic bytes)"""
+    if _is_xlsx(path):
+        # เปิดผ่าน BytesIO เพื่อเลี่ยงที่ openpyxl ปฏิเสธไฟล์ xlsx ที่ตั้งนามสกุล .xls
+        with open(path, "rb") as fh:
+            buf = io.BytesIO(fh.read())
+        wb = openpyxl.load_workbook(buf, data_only=True, read_only=True)
         grids = []
         for ws in wb.worksheets:
             nr, nc = ws.max_row or 0, ws.max_column or 0
@@ -132,14 +147,17 @@ def sheet_has_label(sheet, targets, scan_cols=10):
 
 
 # ---------- content-based sheet lookup (ทนต่อชื่อชีตแปลกๆ เช่น 'FS.T') ----------
-def get_bs_sheet(grids):
-    for g in grids:                                   # งบดุล = ชีตที่มีบรรทัด 'รวมสินทรัพย์'
-        if sheet_has_label(g, ["รวมสินทรัพย์"]):
-            return g
-    for g in grids:                                   # เผื่อไว้: ชื่อขึ้นต้น BS
-        if norm(g.name).upper().startswith("BS"):
-            return g
-    raise ExtractError(f"ไม่พบชีตงบดุล — มีชีต: {[g.name for g in grids]}")
+BS_TOTAL_LABELS = ["รวมสินทรัพย์", "รวมหนี้สิน", "รวมส่วนของผู้ถือหุ้น", "รวมส่วนของเจ้าของ"]
+
+
+def get_bs_sheets(grids):
+    """คืน list ชีตงบดุล — บางบริษัทแยกงบดุลเป็นหลายชีต (DUSIT: สินทรัพย์ / หนี้สิน+ทุน)"""
+    sheets = [g for g in grids if sheet_has_label(g, BS_TOTAL_LABELS)]
+    if not sheets:
+        sheets = [g for g in grids if norm(g.name).upper().startswith(("BS", "FS"))]
+    if not sheets:
+        raise ExtractError(f"ไม่พบชีตงบดุล — มีชีต: {[g.name for g in grids]}")
+    return sheets
 
 
 def get_pl_sheet(grids):
@@ -176,12 +194,13 @@ DATE_RE = re.compile(r"\d{1,2}\s+\S+\s+(25\d\d)")
 
 
 def year_of(v):
-    """คืนปี พ.ศ. ถ้า cell เป็น 'ตัวบอกงวด' (เลขปีล้วน หรือวันที่เต็ม) มิฉะนั้น None"""
+    """คืนปี พ.ศ. ถ้า cell เป็น 'ตัวบอกงวด' (เลขปีล้วน / 'พ.ศ. 2568' / วันที่เต็ม) มิฉะนั้น None"""
     if isinstance(v, (int, float)) and 2500 <= v <= 2600:
         return int(v)
     t = norm(v)
-    if re.fullmatch(r"25\d\d(\.0)?", t):
-        return int(float(t))
+    m = re.fullmatch(r"(?:พ\.?\s*ศ\.?\s*)?(25\d\d)(?:\.0)?", t)   # '2568' หรือ 'พ.ศ. 2568' (MINT)
+    if m:
+        return int(m.group(1))
     m = DATE_RE.search(t)                          # '31 มีนาคม 2568'
     return int(m.group(1)) if m else None
 
@@ -254,6 +273,7 @@ def find_value(sheet, col, spec, divisor, row_end=None):
     match_mode = spec.get("match", "prefix")
     aliases = [nospace(a) for a in spec["aliases"]]
     do_sum = spec.get("sum", False)
+    reduce = spec.get("reduce")                    # 'max' = เอาค่ามากสุด (ไม่ใช่บรรทัดแรก)
     limit = row_end if row_end is not None else sheet.nrows
     found = []
     for r in range(limit):
@@ -273,11 +293,15 @@ def find_value(sheet, col, spec, divisor, row_end=None):
         v = sheet.cell_value(r, col)
         if isinstance(v, (int, float)) and v != 0:
             found.append(v / divisor)
-            if not do_sum:
+            if not do_sum and not reduce:
                 break
     if not found:
         return None
-    return sum(found) if do_sum else found[0]
+    if do_sum:
+        return sum(found)
+    if reduce == "max":
+        return max(found, key=abs)
+    return found[0]
 
 
 def extract_file(path):
@@ -285,26 +309,47 @@ def extract_file(path):
     cfg = load_map()
     grids = open_book(path)
     pl = get_pl_sheet(grids)
-    bs = get_bs_sheet(grids)
+    bs_sheets = get_bs_sheets(grids)                # อาจมีหลายชีต (งบดุลแยก)
 
     q, year, is_annual = detect_period(pl)
     pl_div = detect_unit_divisor(pl)
-    bs_div = detect_unit_divisor(bs)
     pl_col = pl_current_consol_col(pl, year)
-    bs_cur, bs_beg = bs_date_cols(bs, year)
+
+    # เตรียม (sheet, unit, col_cur, col_begin) ของงบดุลแต่ละใบ
+    bs_ctx = []
+    for bs in bs_sheets:
+        try:
+            cur, beg = bs_date_cols(bs, year)
+        except ExtractError:
+            continue
+        bs_ctx.append((bs, detect_unit_divisor(bs), cur, beg))
+    if not bs_ctx:
+        raise ExtractError(f"{os.path.basename(path)}: หาคอลัมน์งวดของงบดุลไม่ได้")
 
     out = {"file": os.path.basename(path), "ticker": detect_company(pl),
            "quarter": q, "year": year,
-           "is_annual": is_annual, "pl_unit_div": pl_div, "bs_unit_div": bs_div}
+           "is_annual": is_annual, "pl_unit_div": pl_div}
     missing = []
 
     # income statement (เฉพาะงบชุดแรก = 3 เดือน; กันข้ามไปงบสะสม)
     pl_end = pl_first_statement_end(pl, pl_col)
+    # รายได้หลัก (revenue_main) ต้องอยู่เหนือบรรทัด 'รวมรายได้' แรก — กันไปโดนรายได้งบสะสม
+    rev1 = next((r for r in range(pl_end)
+                 if nospace(row_label(pl, r, pl_col)) in ("รวมรายได้", "รายได้รวม")), pl_end)
     for name, spec in cfg["income_statement"].items():
-        v = find_value(pl, pl_col, spec, pl_div, row_end=pl_end)
+        end = rev1 if name == "revenue_main" else pl_end
+        v = find_value(pl, pl_col, spec, pl_div, row_end=end)
         if v is None and spec.get("required"):
             missing.append(f"PL:{name}")
         out[name] = v
+
+    # total revenue: งบ multi-step (DUSIT) 'รวมรายได้' = ผลรวมรายได้อื่นเท่านั้น
+    # ถ้ารายได้หลักบรรทัดเดียว > 'รวมรายได้' -> total = รายได้หลัก + รวมรายได้(อื่น)
+    R, M = out.get("total_revenue"), out.get("revenue_main")
+    if R is not None and M is not None and M > R:
+        out["total_revenue"] = M + R
+    elif R is None and M is not None:
+        out["total_revenue"] = M
 
     # COGS: ใช้ subtotal ถ้ามี (ASIA) มิฉะนั้นผลรวม components (CENTEL/ERW); เป็นค่าบวกเสมอ
     cogs = out.get("cogs_subtotal") or out.get("cogs_components")
@@ -312,10 +357,15 @@ def extract_file(path):
         missing.append("PL:cogs (ทั้ง subtotal และ components)")
     out["cogs"] = abs(cogs) if cogs is not None else None
 
-    # balance sheet: เก็บทั้งยอดปลายงวด (cur) และต้นงวด (beg)
+    # balance sheet: ค้นข้ามทุกชีตงบดุล (รองรับงบดุลแยกชีต) เก็บยอดปลายงวด+ต้นงวด
     for name, spec in cfg["balance_sheet"].items():
-        v_cur = find_value(bs, bs_cur, spec, bs_div)
-        v_beg = find_value(bs, bs_beg, spec, bs_div)
+        v_cur = v_beg = None
+        for bs, div, cur, beg in bs_ctx:
+            v = find_value(bs, cur, spec, div)
+            if v is not None:
+                v_cur = v
+                v_beg = find_value(bs, beg, spec, div)
+                break
         if v_cur is None and spec.get("required"):
             missing.append(f"BS:{name}")
         out[name + "_end"] = v_cur

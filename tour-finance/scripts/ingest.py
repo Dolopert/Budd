@@ -29,7 +29,13 @@ HERE = os.path.dirname(__file__)
 RAW = os.path.normpath(os.path.join(HERE, "..", "data", "raw"))
 OUT = os.path.normpath(os.path.join(HERE, "..", "output"))
 CSV_PATH = os.path.join(OUT, "metrics_all.csv")
-STMT_RE = re.compile(r"FINANCIAL_STATEMENTS\.(xls|xlsx|xlsm)$", re.I)
+# รับทุกไฟล์ spreadsheet (บางงบรายปีใช้ชื่อรหัส SET เช่น 102000_t_25690223.XLSX)
+STMT_RE = re.compile(r"\.(xls|xlsx|xlsm)$", re.I)
+
+
+def is_english_copy(path):
+    """ข้ามไฟล์เวอร์ชันภาษาอังกฤษ (รหัส SET '_e_') — ใช้ฉบับไทย '_t_' เป็นหลัก"""
+    return bool(re.search(r"_e_\d", os.path.basename(path)))
 
 CSV_COLS = ["ticker", "year", "quarter", "is_annual", "revenue", "cogs", "net_profit",
             "ar_end", "inv_end", "ap_end", "total_assets_end", "total_equity_end",
@@ -42,18 +48,14 @@ def find_statements(paths):
     tmp = tempfile.mkdtemp(prefix="ingest_")
     def walk(p):
         if os.path.isdir(p):
-            for root, _, files in os.walk(p):
-                for f in files:
-                    walk(os.path.join(root, f))
-        elif p.lower().endswith(".zip"):
+            for entry in sorted(os.listdir(p)):
+                walk(os.path.join(p, entry))
+        elif p.lower().endswith(".zip"):            # รองรับ zip ซ้อน zip (recurse)
             d = tempfile.mkdtemp(dir=tmp)
             with zipfile.ZipFile(p) as z:
                 z.extractall(d)
-            for root, _, files in os.walk(d):
-                for f in files:
-                    if STMT_RE.search(f):
-                        out.append(os.path.join(root, f))
-        elif STMT_RE.search(os.path.basename(p)):
+            walk(d)
+        elif STMT_RE.search(os.path.basename(p)) and not is_english_copy(p):
             out.append(p)
     for p in paths:
         walk(p)
@@ -62,12 +64,15 @@ def find_statements(paths):
 
 def import_file(path):
     """detect + คัดลอกไฟล์งบเข้า data/raw; คืน (ticker, year, tag) หรือ error"""
-    grids = E.open_book(path)
-    pl = E.get_pl_sheet(grids)
-    ticker = E.detect_company(pl)
-    if not ticker:
-        return None, "ไม่รู้จักบริษัท (เพิ่มคีย์เวิร์ดใน TICKER_KEYWORDS)"
-    q, year, is_annual = E.detect_period(pl)
+    try:
+        grids = E.open_book(path)
+        pl = E.get_pl_sheet(grids)
+        ticker = E.detect_company(pl)
+        if not ticker:
+            return None, "ไม่รู้จักบริษัท (เพิ่มคีย์เวิร์ดใน TICKER_KEYWORDS)"
+        q, year, is_annual = E.detect_period(pl)
+    except Exception as e:                          # กันไฟล์เดียวล้มทั้ง batch
+        return None, str(e)
     tag = "FY" if is_annual else q
     ext = path.lower().rsplit(".", 1)[-1]
     dst_dir = os.path.join(RAW, ticker, str(year))
@@ -87,8 +92,8 @@ def rebuild():
     for f in sorted(set(files)):
         try:
             rec = E.extract_file(f)
-        except E.ExtractError as e:
-            errors.append(str(e))
+        except Exception as e:
+            errors.append(f"{os.path.relpath(f, RAW)}: {e}")
             continue
         tk = rec["ticker"] or os.path.basename(os.path.dirname(os.path.dirname(f)))
         key = (tk, rec["year"])
