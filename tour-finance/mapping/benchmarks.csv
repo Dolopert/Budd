@@ -19,3 +19,5 @@ mda,MINT,2568,DIO,20,
 mda,MINT,2568,DPO,67,
 mda,MINT,2568,ROA,0.028,
 mda,MINT,2568,ROE,0.099,
+# ยืนยันจาก MD&A 2568 (สะสม): Q1 DSO26/DIO22/DPO68 | 6M 25/21/68 | 9M 27/20/66
+# MINT คำนวณ DPO ด้วยฐาน (ต้นทุน+SG&A) -> ~67 วัน ต่างจาก settrade (163) และเรา CFA (106)
