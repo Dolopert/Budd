@@ -146,6 +146,16 @@ def sheet_has_label(sheet, targets, scan_cols=10):
     return False
 
 
+def _sheet_title_has(sheet, keyword, rows=6, cols=6):
+    """จริงถ้ามีคำ keyword ในหัวข้อ (ช่วงแถวบนๆ) — จับชีตที่ตั้งชื่อเป็นเลขหน้า (OHTL 2564)"""
+    kw = nospace(keyword)
+    for r in range(min(sheet.nrows, rows)):
+        for c in range(min(sheet.ncols, cols)):
+            if kw in nospace(sheet.cell_value(r, c)):
+                return True
+    return False
+
+
 # ---------- content-based sheet lookup (ทนต่อชื่อชีตแปลกๆ เช่น 'FS.T') ----------
 BS_TOTAL_LABELS = ["รวมสินทรัพย์", "รวมหนี้สิน", "รวมส่วนของผู้ถือหุ้น", "รวมส่วนของเจ้าของ"]
 
@@ -214,6 +224,8 @@ def get_pl_sheet(grids):
     if not pls:                                        # เผื่อไม่มีบรรทัด 'รวมรายได้' (OHTL) / ชื่อไทย (MANRIN)
         pls = [g for g in grids if norm(g.name).upper().startswith("PL")
                or "กำไรขาดทุน" in norm(g.name)]
+    if not pls:                                        # ชีตตั้งชื่อเลขหน้า (OHTL 2564) — จับจากหัวข้อในเนื้อหา
+        pls = [g for g in grids if _sheet_title_has(g, "งบกำไรขาดทุน")]
     if not pls:
         raise ExtractError(f"ไม่พบชีตงบกำไรขาดทุน — มีชีต: {[g.name for g in grids]}")
     for g in pls:                                      # 1) ชอบชีต 3 เดือนที่ระบุชัด
