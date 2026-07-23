@@ -1,0 +1,251 @@
+<title>เทรนด์ + ฤดูกาล 5 ปี — หุ้นกลุ่ม TOUR</title>
+<style>
+  :root{
+    color-scheme:light;
+    --plane:#f4f5f2; --surface:#fbfbf9; --ink:#12130f; --ink2:#54574d; --muted:#8b8d82;
+    --grid:#e4e4dc; --axis:#c4c5ba; --ring:rgba(18,19,15,.10);
+    --accent:#256abf; --accent-soft:#cfe0f6;
+    --covid:rgba(208,59,59,.07); --covid-line:rgba(208,59,59,.35);
+    --neg:#256abf; --mid:#eeece6; --pos:#c2410c;
+    --seq0:#eef4fb; --seq1:#256abf;
+    --chip:#ecebe4; --chip-on:#12130f;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:var(--plane); color:var(--ink);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      color-scheme:dark;
+      --plane:#0e0f0c; --surface:#191a16; --ink:#f1f1ea; --ink2:#b7b9ad; --muted:#83857a;
+      --grid:#2a2b26; --axis:#3a3b34; --ring:rgba(255,255,255,.11);
+      --accent:#5fa0e8; --accent-soft:#1e3350;
+      --covid:rgba(230,103,103,.10); --covid-line:rgba(230,103,103,.4);
+      --neg:#5fa0e8; --mid:#33342d; --pos:#e0743a;
+      --seq0:#16202c; --seq1:#5fa0e8;
+      --chip:#23241f; --chip-on:#f1f1ea;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --plane:#0e0f0c; --surface:#191a16; --ink:#f1f1ea; --ink2:#b7b9ad; --muted:#83857a;
+    --grid:#2a2b26; --axis:#3a3b34; --ring:rgba(255,255,255,.11);
+    --accent:#5fa0e8; --accent-soft:#1e3350;
+    --covid:rgba(230,103,103,.10); --covid-line:rgba(230,103,103,.4);
+    --neg:#5fa0e8; --mid:#33342d; --pos:#e0743a;
+    --seq0:#16202c; --seq1:#5fa0e8;
+    --chip:#23241f; --chip-on:#f1f1ea;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:26px 20px;line-height:1.5;min-height:100vh}
+  .wrap{max-width:1120px;margin:0 auto}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);margin:0 0 6px}
+  h1{font-size:24px;letter-spacing:-.01em;margin:0 0 6px;text-wrap:balance}
+  .lede{color:var(--ink2);font-size:14.5px;margin:0 0 22px;max-width:70ch}
+  .card{background:var(--surface);border:1px solid var(--ring);border-radius:13px;padding:18px 20px;margin-bottom:16px}
+  .controls{display:flex;flex-direction:column;gap:12px}
+  .ctl-row{display:flex;flex-wrap:wrap;gap:14px;align-items:baseline}
+  .ctl-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;min-width:64px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{border:1px solid var(--ring);background:var(--chip);color:var(--ink2);border-radius:999px;
+    padding:6px 13px;font-size:13px;cursor:pointer;font-family:inherit;transition:background .12s}
+  .chip[aria-pressed="true"]{background:var(--chip-on);color:var(--surface);border-color:var(--chip-on);font-weight:600}
+  .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .metric-desc{font-size:13px;color:var(--ink2);margin:2px 0 0}
+  .section-t{font-size:15px;font-weight:600;margin:0 0 4px}
+  .section-sub{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+  .scroll{overflow-x:auto}
+  svg{display:block;max-width:100%;height:auto}
+  .hm-wrap{overflow-x:auto}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font-size:12px;color:var(--ink2);margin-top:12px}
+  .legend .sw{display:inline-block;width:36px;height:11px;border-radius:3px;vertical-align:middle;margin-right:6px}
+  .covid-key{display:inline-block;width:13px;height:13px;border-radius:3px;background:var(--covid);border:1px solid var(--covid-line);vertical-align:middle;margin-right:5px}
+  .tt{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--ring);border-radius:8px;
+    padding:8px 11px;font-size:12px;color:var(--ink);box-shadow:0 6px 20px rgba(0,0,0,.16);opacity:0;transition:opacity .1s;z-index:20;max-width:230px}
+  .tt b{color:var(--ink)} .tt .k{color:var(--muted)}
+  .foot{font-size:12px;color:var(--muted);line-height:1.6;margin-top:4px}
+  .foot code{font-family:var(--mono);font-size:.92em}
+  .cell-lbl{font-size:9.5px;font-variant-numeric:tabular-nums}
+  table{border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;min-width:100%}
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">tour sector · 2564–2568 · 200 จุดข้อมูล</p>
+  <h1>เทรนด์ฟื้นตัวหลังโควิด + ฤดูกาล — หุ้นโรงแรมไทย 10 บริษัท</h1>
+  <p class="lede">อัตราส่วนการเงินรายไตรมาส 5 ปีเต็ม (20 ไตรมาส × 10 บริษัท) จากงบตรวจสอบ ฐาน CFA.
+  แถบสีจางคือช่วง <b>โควิดปี 2564</b> (ก้นเหวของกลุ่ม) — ดูได้ทั้งการฟื้นตัวข้ามปีและจังหวะขึ้น-ลงตามฤดูกาลในปีเดียวกัน</p>
+
+  <div class="card controls">
+    <div class="ctl-row">
+      <span class="ctl-label">ตัวชี้วัด</span>
+      <div class="chips" id="metricChips"></div>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">เจาะบริษัท</span>
+      <div class="chips" id="firmChips"></div>
+    </div>
+    <div class="metric-desc" id="mdesc"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-t" id="trendTitle">เส้นเวลา 20 ไตรมาส</div>
+    <div class="section-sub" id="trendSub"></div>
+    <div id="trend"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-t">Heatmap — ครบทั้ง 200 จุด (บริษัท × 20 ไตรมาส)</div>
+    <div class="section-sub">ซ้าย→ขวา = เวลา (เห็นการฟื้นตัว) · ในแต่ละปี = จังหวะฤดูกาล</div>
+    <div class="hm-wrap" id="heatmap"></div>
+    <div class="legend" id="hmLegend"></div>
+  </div>
+
+  <p class="foot">ที่มา: งบการเงินที่ตลาดหลักทรัพย์เผยแพร่ (สอบทาน/ตรวจสอบ) · ฐาน CFA · งบดุลเฉลี่ยแบบ chain · Q4 = FY−Q1−Q2−Q3 (หรือ de-cumulate งบสะสม) · ROA/ROE/NPM/GM = % ต่อไตรมาส (ไม่ annualize) · DSO/DIO/DPO/CCC = วัน · ครบ 200/200 จุด, ตรวจ 1,497 รายการ 0 error</p>
+</div>
+
+<div class="tt" id="tt"></div>
+
+<script>
+const DATA = {"ASIA": {"Q1/2564": {"DSO": 78.5, "DIO": 23.1, "DPO": 11.3, "CCC": 90.3, "ROA": -0.51, "ROE": -0.91, "NPM": -30.05, "GM": 3.7}, "Q2/2564": {"DSO": 90.3, "DIO": 23.8, "DPO": 9.2, "CCC": 105.0, "ROA": -0.62, "ROE": -1.12, "NPM": -40.99, "GM": -4.8}, "Q3/2564": {"DSO": 106.0, "DIO": 26.5, "DPO": 10.6, "CCC": 121.9, "ROA": -0.4, "ROE": -0.72, "NPM": -25.59, "GM": 6.5}, "Q4/2564": {"DSO": 103.5, "DIO": 22.8, "DPO": 9.4, "CCC": 116.9, "ROA": -0.66, "ROE": -1.16, "NPM": -44.38, "GM": -8.4}, "Q1/2565": {"DSO": 71.5, "DIO": 22.0, "DPO": 8.5, "CCC": 85.0, "ROA": -0.48, "ROE": -0.82, "NPM": -28.86, "GM": 6.6}, "Q2/2565": {"DSO": 61.1, "DIO": 20.1, "DPO": 9.7, "CCC": 71.6, "ROA": -0.34, "ROE": -0.58, "NPM": -16.69, "GM": 14.9}, "Q3/2565": {"DSO": 48.6, "DIO": 18.2, "DPO": 10.5, "CCC": 56.3, "ROA": -0.24, "ROE": -0.42, "NPM": -9.91, "GM": 21.2}, "Q4/2565": {"DSO": 42.7, "DIO": 17.8, "DPO": 10.9, "CCC": 49.5, "ROA": -0.02, "ROE": -0.03, "NPM": -0.66, "GM": 27.9}, "Q1/2566": {"DSO": 43.3, "DIO": 16.6, "DPO": 10.7, "CCC": 49.2, "ROA": -0.13, "ROE": -0.22, "NPM": -4.41, "GM": 26.7}, "Q2/2566": {"DSO": 46.3, "DIO": 16.9, "DPO": 10.8, "CCC": 52.5, "ROA": -0.06, "ROE": -0.1, "NPM": -2.03, "GM": 23.8}, "Q3/2566": {"DSO": 43.9, "DIO": 17.1, "DPO": 10.9, "CCC": 50.1, "ROA": 0.06, "ROE": 0.1, "NPM": 1.95, "GM": 27.4}, "Q4/2566": {"DSO": 42.9, "DIO": 18.5, "DPO": 11.9, "CCC": 49.5, "ROA": -0.46, "ROE": -0.78, "NPM": -16.29, "GM": 27.0}, "Q1/2567": {"DSO": 35.2, "DIO": 17.7, "DPO": 11.6, "CCC": 41.3, "ROA": 0.01, "ROE": 0.01, "NPM": 0.23, "GM": 30.3}, "Q2/2567": {"DSO": 35.8, "DIO": 17.8, "DPO": 11.8, "CCC": 41.7, "ROA": -0.04, "ROE": -0.07, "NPM": -1.34, "GM": 27.6}, "Q3/2567": {"DSO": 31.2, "DIO": 16.9, "DPO": 11.9, "CCC": 36.2, "ROA": -0.04, "ROE": -0.07, "NPM": -1.26, "GM": 26.0}, "Q4/2567": {"DSO": 27.2, "DIO": 17.7, "DPO": 13.1, "CCC": 31.8, "ROA": 0.02, "ROE": 0.03, "NPM": 0.58, "GM": 27.2}, "Q1/2568": {"DSO": 22.4, "DIO": 17.8, "DPO": 12.5, "CCC": 27.6, "ROA": 0.14, "ROE": 0.24, "NPM": 4.21, "GM": 32.0}, "Q2/2568": {"DSO": 24.4, "DIO": 17.8, "DPO": 11.6, "CCC": 30.6, "ROA": -0.15, "ROE": -0.25, "NPM": -4.89, "GM": 23.6}, "Q3/2568": {"DSO": 24.4, "DIO": 17.8, "DPO": 10.8, "CCC": 31.4, "ROA": -0.06, "ROE": -0.1, "NPM": -1.89, "GM": 26.4}, "Q4/2568": {"DSO": 21.1, "DIO": 17.7, "DPO": 11.6, "CCC": 27.1, "ROA": 0.03, "ROE": 0.06, "NPM": 0.83, "GM": 39.4}}, "CENTEL": {"Q1/2564": {"DSO": 17.3, "DIO": 37.4, "DPO": 88.9, "CCC": -34.2, "ROA": -1.36, "ROE": -4.79, "NPM": -17.45, "GM": 34.2}, "Q2/2564": {"DSO": 19.9, "DIO": 35.3, "DPO": 91.9, "CCC": -36.7, "ROA": -1.52, "ROE": -4.4, "NPM": -23.83, "GM": 30.5}, "Q3/2564": {"DSO": 24.1, "DIO": 36.7, "DPO": 111.4, "CCC": -50.6, "ROA": -1.74, "ROE": -4.46, "NPM": -34.73, "GM": 26.7}, "Q4/2564": {"DSO": 17.8, "DIO": 30.2, "DPO": 102.8, "CCC": -54.8, "ROA": 0.39, "ROE": 1.03, "NPM": 5.11, "GM": 41.0}, "Q1/2565": {"DSO": 21.0, "DIO": 28.7, "DPO": 101.8, "CCC": -52.1, "ROA": -0.05, "ROE": -0.13, "NPM": -0.6, "GM": 40.7}, "Q2/2565": {"DSO": 20.6, "DIO": 26.6, "DPO": 93.8, "CCC": -46.7, "ROA": 0.04, "ROE": 0.1, "NPM": 0.43, "GM": 41.4}, "Q3/2565": {"DSO": 19.9, "DIO": 27.1, "DPO": 97.2, "CCC": -50.2, "ROA": -0.19, "ROE": -0.48, "NPM": -1.99, "GM": 41.1}, "Q4/2565": {"DSO": 19.3, "DIO": 27.9, "DPO": 97.5, "CCC": -50.3, "ROA": 1.05, "ROE": 2.7, "NPM": 9.5, "GM": 43.6}, "Q1/2566": {"DSO": 19.6, "DIO": 28.7, "DPO": 96.9, "CCC": -48.5, "ROA": 1.34, "ROE": 3.54, "NPM": 11.73, "GM": 47.5}, "Q2/2566": {"DSO": 18.1, "DIO": 27.9, "DPO": 85.3, "CCC": -39.2, "ROA": 0.18, "ROE": 0.5, "NPM": 1.92, "GM": 41.1}, "Q3/2566": {"DSO": 13.6, "DIO": 28.6, "DPO": 77.8, "CCC": -35.6, "ROA": 0.1, "ROE": 0.27, "NPM": 1.01, "GM": 41.7}, "Q4/2566": {"DSO": 18.2, "DIO": 26.0, "DPO": 80.6, "CCC": -36.3, "ROA": 0.78, "ROE": 2.11, "NPM": 7.12, "GM": 41.1}, "Q1/2567": {"DSO": 20.2, "DIO": 24.5, "DPO": 86.2, "CCC": -41.6, "ROA": 1.45, "ROE": 3.81, "NPM": 12.42, "GM": 47.2}, "Q2/2567": {"DSO": 17.8, "DIO": 22.4, "DPO": 88.5, "CCC": -48.3, "ROA": 0.22, "ROE": 0.59, "NPM": 2.15, "GM": 43.2}, "Q3/2567": {"DSO": 14.9, "DIO": 23.0, "DPO": 97.7, "CCC": -59.8, "ROA": 0.27, "ROE": 0.74, "NPM": 2.72, "GM": 41.2}, "Q4/2567": {"DSO": 15.0, "DIO": 22.7, "DPO": 102.5, "CCC": -64.8, "ROA": 1.08, "ROE": 3.11, "NPM": 10.06, "GM": 43.8}, "Q1/2568": {"DSO": 15.8, "DIO": 23.1, "DPO": 102.7, "CCC": -63.8, "ROA": 1.26, "ROE": 3.57, "NPM": 11.37, "GM": 49.4}, "Q2/2568": {"DSO": 15.3, "DIO": 22.4, "DPO": 87.8, "CCC": -50.1, "ROA": 0.14, "ROE": 0.4, "NPM": 1.49, "GM": 41.6}, "Q3/2568": {"DSO": 12.8, "DIO": 22.4, "DPO": 91.6, "CCC": -56.4, "ROA": 0.23, "ROE": 0.65, "NPM": 2.46, "GM": 44.3}, "Q4/2568": {"DSO": 12.0, "DIO": 21.9, "DPO": 97.2, "CCC": -63.3, "ROA": 1.57, "ROE": 4.39, "NPM": 14.27, "GM": 50.3}}, "DUSIT": {"Q1/2564": {"DSO": 90.7, "DIO": 10.5, "DPO": 239.7, "CCC": -138.5, "ROA": 0.24, "ROE": 1.11, "NPM": 8.26, "GM": 23.7}, "Q2/2564": {"DSO": 75.3, "DIO": 13.4, "DPO": 295.1, "CCC": -206.4, "ROA": -1.76, "ROE": -8.48, "NPM": -64.47, "GM": 36.4}, "Q3/2564": {"DSO": 41.4, "DIO": 10.3, "DPO": 201.3, "CCC": -149.5, "ROA": -1.3, "ROE": -6.86, "NPM": -36.61, "GM": 34.9}, "Q4/2564": {"DSO": 29.4, "DIO": 9.7, "DPO": 171.0, "CCC": -131.8, "ROA": -1.56, "ROE": -8.98, "NPM": -28.28, "GM": 54.4}, "Q1/2565": {"DSO": 36.9, "DIO": 9.3, "DPO": 167.7, "CCC": -121.5, "ROA": -0.61, "ROE": -3.81, "NPM": -13.09, "GM": 44.4}, "Q2/2565": {"DSO": 41.5, "DIO": 11.3, "DPO": 177.7, "CCC": -124.9, "ROA": -1.15, "ROE": -7.74, "NPM": -26.69, "GM": 37.4}, "Q3/2565": {"DSO": 34.7, "DIO": 12.4, "DPO": 181.0, "CCC": -134.0, "ROA": -0.74, "ROE": -4.42, "NPM": -14.62, "GM": 42.6}, "Q4/2565": {"DSO": 27.4, "DIO": 10.9, "DPO": 182.2, "CCC": -143.9, "ROA": 0.23, "ROE": 1.17, "NPM": 3.42, "GM": 49.2}, "Q1/2566": {"DSO": 30.4, "DIO": 10.5, "DPO": 176.3, "CCC": -135.3, "ROA": 0.04, "ROE": 0.23, "NPM": 0.67, "GM": 46.9}, "Q2/2566": {"DSO": 39.1, "DIO": 11.6, "DPO": 187.1, "CCC": -136.3, "ROA": -0.74, "ROE": -3.96, "NPM": -14.36, "GM": 42.7}, "Q3/2566": {"DSO": 35.5, "DIO": 10.9, "DPO": 170.1, "CCC": -123.7, "ROA": -0.95, "ROE": -5.49, "NPM": -17.91, "GM": 40.4}, "Q4/2566": {"DSO": 27.2, "DIO": 9.0, "DPO": 146.3, "CCC": -110.0, "ROA": -0.54, "ROE": -3.38, "NPM": -7.76, "GM": 42.4}, "Q1/2567": {"DSO": 27.5, "DIO": 9.0, "DPO": 159.7, "CCC": -123.2, "ROA": 0.44, "ROE": 2.91, "NPM": 5.99, "GM": 47.5}, "Q2/2567": {"DSO": 38.7, "DIO": 10.6, "DPO": 195.5, "CCC": -146.2, "ROA": -0.42, "ROE": -2.03, "NPM": -8.76, "GM": 41.2}, "Q3/2567": {"DSO": 39.5, "DIO": 11.2, "DPO": 183.1, "CCC": -132.4, "ROA": -1.58, "ROE": -6.52, "NPM": -39.69, "GM": 38.3}, "Q4/2567": {"DSO": 13.5, "DIO": 2.6, "DPO": 36.9, "CCC": -20.8, "ROA": 1.15, "ROE": 5.02, "NPM": 7.22, "GM": 27.7}, "Q1/2568": {"DSO": 47.3, "DIO": 8.7, "DPO": 131.5, "CCC": -75.5, "ROA": 0.09, "ROE": 0.41, "NPM": 1.54, "GM": 42.2}, "Q2/2568": {"DSO": 66.5, "DIO": 10.7, "DPO": 156.6, "CCC": -79.4, "ROA": -0.84, "ROE": -3.78, "NPM": -18.98, "GM": 37.5}, "Q3/2568": {"DSO": 61.2, "DIO": 9.8, "DPO": 141.0, "CCC": -69.9, "ROA": -1.1, "ROE": -5.17, "NPM": -24.14, "GM": 35.0}, "Q4/2568": {"DSO": 38.9, "DIO": 6.5, "DPO": 99.8, "CCC": -54.4, "ROA": 0.61, "ROE": 2.97, "NPM": 7.71, "GM": 41.8}}, "ERW": {"Q1/2564": {"DSO": 16.6, "DIO": 12.4, "DPO": 35.5, "CCC": -6.6, "ROA": -2.43, "ROE": -13.92, "NPM": -131.49, "GM": 19.2}, "Q2/2564": {"DSO": 19.3, "DIO": 12.6, "DPO": 27.9, "CCC": 4.0, "ROA": -3.21, "ROE": -13.78, "NPM": -266.33, "GM": -5.9}, "Q3/2564": {"DSO": 18.3, "DIO": 12.1, "DPO": 22.6, "CCC": 7.8, "ROA": -2.85, "ROE": -10.06, "NPM": -263.09, "GM": -13.0}, "Q4/2564": {"DSO": 9.7, "DIO": 8.8, "DPO": 24.6, "CCC": -6.1, "ROA": -1.13, "ROE": -4.19, "NPM": -35.44, "GM": 45.4}, "Q1/2565": {"DSO": 15.1, "DIO": 8.3, "DPO": 27.7, "CCC": -4.3, "ROA": -1.45, "ROE": -5.56, "NPM": -50.28, "GM": 37.3}, "Q2/2565": {"DSO": 10.5, "DIO": 6.4, "DPO": 20.4, "CCC": -3.5, "ROA": -0.66, "ROE": -2.55, "NPM": -14.22, "GM": 48.3}, "Q3/2565": {"DSO": 9.3, "DIO": 5.7, "DPO": 20.4, "CCC": -5.3, "ROA": -0.03, "ROE": -0.1, "NPM": -0.42, "GM": 52.9}, "Q4/2565": {"DSO": 7.9, "DIO": 5.0, "DPO": 23.1, "CCC": -10.2, "ROA": 1.21, "ROE": 4.61, "NPM": 14.65, "GM": 57.8}, "Q1/2566": {"DSO": 8.0, "DIO": 4.7, "DPO": 23.7, "CCC": -11.0, "ROA": 1.1, "ROE": 4.06, "NPM": 13.38, "GM": 56.3}, "Q2/2566": {"DSO": 7.9, "DIO": 4.7, "DPO": 20.3, "CCC": -7.7, "ROA": 0.67, "ROE": 2.37, "NPM": 8.76, "GM": 55.7}, "Q3/2566": {"DSO": 6.8, "DIO": 4.8, "DPO": 20.1, "CCC": -8.5, "ROA": 0.68, "ROE": 2.49, "NPM": 8.91, "GM": 56.6}, "Q4/2566": {"DSO": 7.3, "DIO": 5.3, "DPO": 24.2, "CCC": -11.6, "ROA": 0.94, "ROE": 3.53, "NPM": 11.84, "GM": 58.9}, "Q1/2567": {"DSO": 6.8, "DIO": 5.2, "DPO": 24.8, "CCC": -12.8, "ROA": 1.8, "ROE": 6.49, "NPM": 20.21, "GM": 62.6}, "Q2/2567": {"DSO": 7.3, "DIO": 4.7, "DPO": 22.6, "CCC": -10.7, "ROA": 1.48, "ROE": 4.98, "NPM": 19.83, "GM": 56.1}, "Q3/2567": {"DSO": 7.0, "DIO": 4.7, "DPO": 20.5, "CCC": -8.8, "ROA": 0.49, "ROE": 1.59, "NPM": 6.71, "GM": 56.2}, "Q4/2567": {"DSO": 7.5, "DIO": 4.5, "DPO": 23.3, "CCC": -11.3, "ROA": 1.54, "ROE": 4.55, "NPM": 17.63, "GM": 61.5}, "Q1/2568": {"DSO": 8.1, "DIO": 4.5, "DPO": 23.7, "CCC": -11.1, "ROA": 1.39, "ROE": 3.74, "NPM": 16.98, "GM": 60.8}, "Q2/2568": {"DSO": 7.3, "DIO": 4.6, "DPO": 18.9, "CCC": -7.0, "ROA": 0.27, "ROE": 0.72, "NPM": 3.98, "GM": 54.8}, "Q3/2568": {"DSO": 7.1, "DIO": 4.7, "DPO": 19.2, "CCC": -7.4, "ROA": 0.23, "ROE": 0.63, "NPM": 3.34, "GM": 55.2}, "Q4/2568": {"DSO": 7.9, "DIO": 4.6, "DPO": 24.1, "CCC": -11.7, "ROA": 1.59, "ROE": 4.28, "NPM": 18.25, "GM": 63.1}}, "MANRIN": {"Q1/2564": {"DSO": 33.7, "DIO": 4.9, "DPO": 50.8, "CCC": -12.2, "ROA": -1.92, "ROE": -3.83, "NPM": -175.14, "GM": -156.4}, "Q2/2564": {"DSO": 80.1, "DIO": 5.3, "DPO": 46.5, "CCC": 39.0, "ROA": -2.63, "ROE": -5.49, "NPM": -459.35, "GM": -358.6}, "Q3/2564": {"DSO": 233.6, "DIO": 6.1, "DPO": 41.6, "CCC": 198.1, "ROA": 1.48, "ROE": 3.09, "NPM": 624.82, "GM": -933.5}, "Q4/2564": {"DSO": 55.7, "DIO": 5.0, "DPO": 40.9, "CCC": 19.8, "ROA": -2.64, "ROE": -5.56, "NPM": -238.41, "GM": -157.1}, "Q1/2565": {"DSO": 41.9, "DIO": 3.8, "DPO": 47.5, "CCC": -1.8, "ROA": -3.68, "ROE": -8.08, "NPM": -230.49, "GM": -108.8}, "Q2/2565": {"DSO": 22.5, "DIO": 2.7, "DPO": 51.7, "CCC": -26.5, "ROA": -1.5, "ROE": -3.41, "NPM": -37.64, "GM": -7.5}, "Q3/2565": {"DSO": 19.6, "DIO": 2.1, "DPO": 59.6, "CCC": -37.9, "ROA": -0.56, "ROE": -1.3, "NPM": -8.82, "GM": 16.2}, "Q4/2565": {"DSO": 14.7, "DIO": 2.0, "DPO": 61.7, "CCC": -44.9, "ROA": 0.86, "ROE": 2.0, "NPM": 9.79, "GM": 31.5}, "Q1/2566": {"DSO": 13.1, "DIO": 2.2, "DPO": 51.4, "CCC": -36.1, "ROA": 0.85, "ROE": 1.92, "NPM": 9.0, "GM": 32.6}, "Q2/2566": {"DSO": 15.1, "DIO": 2.5, "DPO": 51.6, "CCC": -34.0, "ROA": 0.15, "ROE": 0.33, "NPM": 1.74, "GM": 32.7}, "Q3/2566": {"DSO": 11.8, "DIO": 2.0, "DPO": 43.7, "CCC": -29.9, "ROA": 2.05, "ROE": 4.17, "NPM": 16.95, "GM": 39.3}, "Q4/2566": {"DSO": 12.5, "DIO": 2.2, "DPO": 47.2, "CCC": -32.4, "ROA": 1.49, "ROE": 2.95, "NPM": 12.53, "GM": 41.6}, "Q1/2567": {"DSO": 15.0, "DIO": 2.1, "DPO": 52.3, "CCC": -35.2, "ROA": 1.86, "ROE": 3.5, "NPM": 14.77, "GM": 45.6}, "Q2/2567": {"DSO": 16.8, "DIO": 2.1, "DPO": 65.5, "CCC": -46.6, "ROA": 0.97, "ROE": 1.7, "NPM": 8.51, "GM": 42.0}, "Q3/2567": {"DSO": 12.4, "DIO": 1.9, "DPO": 58.5, "CCC": -44.2, "ROA": 2.6, "ROE": 4.36, "NPM": 18.22, "GM": 44.3}, "Q4/2567": {"DSO": 13.0, "DIO": 2.2, "DPO": 59.8, "CCC": -44.5, "ROA": 1.72, "ROE": 2.76, "NPM": 11.64, "GM": 44.1}, "Q1/2568": {"DSO": 13.5, "DIO": 2.5, "DPO": 59.3, "CCC": -43.3, "ROA": 2.07, "ROE": 3.17, "NPM": 14.42, "GM": 45.7}, "Q2/2568": {"DSO": 18.0, "DIO": 2.5, "DPO": 58.8, "CCC": -38.3, "ROA": 0.55, "ROE": 0.81, "NPM": 4.86, "GM": 36.3}, "Q3/2568": {"DSO": 12.9, "DIO": 1.9, "DPO": 56.2, "CCC": -41.4, "ROA": 1.77, "ROE": 2.56, "NPM": 12.45, "GM": 39.5}, "Q4/2568": {"DSO": 11.4, "DIO": 2.3, "DPO": 57.4, "CCC": -43.7, "ROA": 1.55, "ROE": 2.16, "NPM": 10.75, "GM": 42.0}}, "MINT": {"Q1/2564": {"DSO": 88.4, "DIO": 38.1, "DPO": 158.6, "CCC": -32.1, "ROA": -2.18, "ROE": -10.7, "NPM": -61.63, "GM": 31.5}, "Q2/2564": {"DSO": 71.3, "DIO": 34.0, "DPO": 144.8, "CCC": -39.5, "ROA": -1.17, "ROE": -6.2, "NPM": -26.44, "GM": 38.3}, "Q3/2564": {"DSO": 58.2, "DIO": 28.8, "DPO": 130.0, "CCC": -43.0, "ROA": -0.15, "ROE": -0.86, "NPM": -2.65, "GM": 43.1}, "Q4/2564": {"DSO": 49.0, "DIO": 27.4, "DPO": 135.8, "CCC": -59.4, "ROA": -0.45, "ROE": -2.29, "NPM": -6.08, "GM": 54.7}, "Q1/2565": {"DSO": 73.0, "DIO": 24.6, "DPO": 127.6, "CCC": -30.0, "ROA": -1.11, "ROE": -5.24, "NPM": -19.68, "GM": 36.6}, "Q2/2565": {"DSO": 50.8, "DIO": 21.7, "DPO": 107.7, "CCC": -35.3, "ROA": 0.47, "ROE": 2.2, "NPM": 5.26, "GM": 50.3}, "Q3/2565": {"DSO": 46.8, "DIO": 21.1, "DPO": 106.0, "CCC": -38.1, "ROA": 1.3, "ROE": 5.85, "NPM": 13.58, "GM": 51.0}, "Q4/2565": {"DSO": 45.5, "DIO": 20.6, "DPO": 111.5, "CCC": -45.4, "ROA": 0.58, "ROE": 2.54, "NPM": 5.87, "GM": 51.7}, "Q1/2566": {"DSO": 48.4, "DIO": 20.1, "DPO": 112.8, "CCC": -44.4, "ROA": -0.26, "ROE": -1.07, "NPM": -2.92, "GM": 46.2}, "Q2/2566": {"DSO": 41.5, "DIO": 18.1, "DPO": 105.8, "CCC": -46.2, "ROA": 0.95, "ROE": 3.92, "NPM": 8.6, "GM": 51.6}, "Q3/2566": {"DSO": 45.3, "DIO": 18.4, "DPO": 111.5, "CCC": -47.7, "ROA": 0.63, "ROE": 2.67, "NPM": 5.83, "GM": 50.7}, "Q4/2566": {"DSO": 43.7, "DIO": 16.4, "DPO": 103.5, "CCC": -43.4, "ROA": 0.33, "ROE": 1.39, "NPM": 3.01, "GM": 46.6}, "Q1/2567": {"DSO": 45.4, "DIO": 16.8, "DPO": 110.4, "CCC": -48.1, "ROA": 0.35, "ROE": 1.44, "NPM": 3.41, "GM": 46.4}, "Q2/2567": {"DSO": 41.0, "DIO": 15.4, "DPO": 97.8, "CCC": -41.3, "ROA": 0.82, "ROE": 3.25, "NPM": 6.84, "GM": 49.0}, "Q3/2567": {"DSO": 42.7, "DIO": 16.8, "DPO": 99.9, "CCC": -40.4, "ROA": 0.1, "ROE": 0.39, "NPM": 0.87, "GM": 48.4}, "Q4/2567": {"DSO": 35.8, "DIO": 16.7, "DPO": 100.5, "CCC": -48.0, "ROA": 1.13, "ROE": 4.16, "NPM": 9.42, "GM": 48.1}, "Q1/2568": {"DSO": 34.9, "DIO": 18.0, "DPO": 104.5, "CCC": -51.6, "ROA": 0.17, "ROE": 0.62, "NPM": 1.64, "GM": 46.3}, "Q2/2568": {"DSO": 32.1, "DIO": 17.0, "DPO": 96.1, "CCC": -47.0, "ROA": 0.92, "ROE": 3.36, "NPM": 7.64, "GM": 49.2}, "Q3/2568": {"DSO": 37.1, "DIO": 17.4, "DPO": 101.7, "CCC": -47.3, "ROA": 0.74, "ROE": 2.75, "NPM": 6.48, "GM": 46.7}, "Q4/2568": {"DSO": 35.0, "DIO": 16.7, "DPO": 102.9, "CCC": -51.2, "ROA": 0.91, "ROE": 3.38, "NPM": 7.38, "GM": 49.5}}, "OHTL": {"Q1/2564": {"DSO": 22.8, "DIO": 7.5, "DPO": 145.0, "CCC": -114.7, "ROA": -2.34, "ROE": -7.59, "NPM": -103.02, "GM": -44.2}, "Q2/2564": {"DSO": 32.2, "DIO": 9.5, "DPO": 143.6, "CCC": -101.9, "ROA": -2.58, "ROE": -8.88, "NPM": -199.24, "GM": -118.4}, "Q3/2564": {"DSO": 32.4, "DIO": 10.4, "DPO": 137.2, "CCC": -94.4, "ROA": -2.73, "ROE": -10.15, "NPM": -163.43, "GM": -65.2}, "Q4/2564": {"DSO": 23.5, "DIO": 8.5, "DPO": 115.0, "CCC": -83.0, "ROA": -1.95, "ROE": -7.73, "NPM": -55.85, "GM": 1.4}, "Q1/2565": {"DSO": 20.5, "DIO": 7.8, "DPO": 108.6, "CCC": -80.3, "ROA": -1.8, "ROE": -7.46, "NPM": -44.2, "GM": 7.3}, "Q2/2565": {"DSO": 14.9, "DIO": 7.1, "DPO": 90.8, "CCC": -68.8, "ROA": -0.95, "ROE": -4.09, "NPM": -17.34, "GM": 21.1}, "Q3/2565": {"DSO": 12.5, "DIO": 6.0, "DPO": 82.8, "CCC": -64.3, "ROA": -0.13, "ROE": -0.58, "NPM": -1.67, "GM": 33.0}, "Q4/2565": {"DSO": 10.1, "DIO": 5.9, "DPO": 82.7, "CCC": -66.7, "ROA": 4.36, "ROE": 17.48, "NPM": 30.94, "GM": 56.9}, "Q1/2566": {"DSO": 13.7, "DIO": 7.4, "DPO": 82.7, "CCC": -61.6, "ROA": 2.11, "ROE": 7.4, "NPM": 18.58, "GM": 52.9}, "Q2/2566": {"DSO": 15.2, "DIO": 7.9, "DPO": 78.4, "CCC": -55.3, "ROA": 0.57, "ROE": 1.83, "NPM": 6.26, "GM": 43.0}, "Q3/2566": {"DSO": 15.2, "DIO": 7.1, "DPO": 82.1, "CCC": -59.8, "ROA": 0.27, "ROE": 0.83, "NPM": 2.82, "GM": 38.3}, "Q4/2566": {"DSO": 12.8, "DIO": 7.6, "DPO": 89.6, "CCC": -69.2, "ROA": 1.67, "ROE": 4.91, "NPM": 13.94, "GM": 48.6}, "Q1/2567": {"DSO": 10.6, "DIO": 7.3, "DPO": 88.4, "CCC": -70.4, "ROA": 2.75, "ROE": 7.59, "NPM": 21.09, "GM": 54.9}, "Q2/2567": {"DSO": 14.4, "DIO": 7.1, "DPO": 91.0, "CCC": -69.4, "ROA": 0.61, "ROE": 1.59, "NPM": 6.82, "GM": 41.4}, "Q3/2567": {"DSO": 13.7, "DIO": 5.8, "DPO": 80.0, "CCC": -60.5, "ROA": 0.98, "ROE": 2.49, "NPM": 9.18, "GM": 40.8}, "Q4/2567": {"DSO": 10.7, "DIO": 6.4, "DPO": 89.7, "CCC": -72.6, "ROA": 2.84, "ROE": 6.82, "NPM": 20.88, "GM": 53.1}, "Q1/2568": {"DSO": 9.9, "DIO": 7.0, "DPO": 87.0, "CCC": -70.1, "ROA": 3.38, "ROE": 7.51, "NPM": 24.56, "GM": 57.9}, "Q2/2568": {"DSO": 16.5, "DIO": 7.1, "DPO": 88.9, "CCC": -65.4, "ROA": -0.38, "ROE": -0.81, "NPM": -5.01, "GM": 35.2}, "Q3/2568": {"DSO": 14.1, "DIO": 7.4, "DPO": 109.0, "CCC": -87.4, "ROA": -0.45, "ROE": -0.98, "NPM": -5.44, "GM": 30.8}, "Q4/2568": {"DSO": 10.4, "DIO": 8.2, "DPO": 130.7, "CCC": -112.1, "ROA": 2.82, "ROE": 6.17, "NPM": 20.34, "GM": 52.9}}, "SHANG": {"Q1/2564": {"DSO": 16.1, "DIO": 36.1, "DPO": 140.1, "CCC": -87.9, "ROA": -1.09, "ROE": -1.13, "NPM": -109.07, "GM": 22.1}, "Q2/2564": {"DSO": 10.6, "DIO": 39.3, "DPO": 139.7, "CCC": -89.8, "ROA": -1.39, "ROE": -1.44, "NPM": -163.33, "GM": 19.2}, "Q3/2564": {"DSO": 11.3, "DIO": 34.1, "DPO": 118.8, "CCC": -73.4, "ROA": -1.46, "ROE": -1.52, "NPM": -156.1, "GM": 20.9}, "Q4/2564": {"DSO": 13.5, "DIO": 22.9, "DPO": 98.8, "CCC": -62.4, "ROA": -2.36, "ROE": -2.46, "NPM": -129.25, "GM": 42.1}, "Q1/2565": {"DSO": 20.9, "DIO": 26.5, "DPO": 116.3, "CCC": -68.9, "ROA": -1.13, "ROE": -1.18, "NPM": -66.94, "GM": 46.6}, "Q2/2565": {"DSO": 16.7, "DIO": 21.2, "DPO": 91.0, "CCC": -53.0, "ROA": -0.58, "ROE": -0.61, "NPM": -21.74, "GM": 58.6}, "Q3/2565": {"DSO": 15.2, "DIO": 13.3, "DPO": 73.1, "CCC": -44.7, "ROA": 0.81, "ROE": 0.86, "NPM": 17.11, "GM": 64.8}, "Q4/2565": {"DSO": 14.9, "DIO": 11.4, "DPO": 83.1, "CCC": -56.8, "ROA": -0.11, "ROE": -0.11, "NPM": -1.62, "GM": 66.8}, "Q1/2566": {"DSO": 10.9, "DIO": 12.3, "DPO": 91.0, "CCC": -67.8, "ROA": 1.5, "ROE": 1.59, "NPM": 19.48, "GM": 72.7}, "Q2/2566": {"DSO": 10.1, "DIO": 14.5, "DPO": 91.7, "CCC": -67.1, "ROA": 1.29, "ROE": 1.36, "NPM": 22.79, "GM": 68.6}, "Q3/2566": {"DSO": 10.5, "DIO": 12.5, "DPO": 78.2, "CCC": -55.2, "ROA": 0.83, "ROE": 0.88, "NPM": 13.03, "GM": 65.3}, "Q4/2566": {"DSO": 11.0, "DIO": 13.0, "DPO": 89.3, "CCC": -65.4, "ROA": -1.84, "ROE": -1.97, "NPM": -23.29, "GM": 68.9}, "Q1/2567": {"DSO": 9.5, "DIO": 13.3, "DPO": 94.0, "CCC": -71.2, "ROA": 2.81, "ROE": 3.0, "NPM": 31.88, "GM": 72.8}, "Q2/2567": {"DSO": 11.3, "DIO": 14.9, "DPO": 99.7, "CCC": -73.5, "ROA": 1.12, "ROE": 1.19, "NPM": 19.13, "GM": 67.9}, "Q3/2567": {"DSO": 9.8, "DIO": 12.5, "DPO": 83.8, "CCC": -61.5, "ROA": 0.43, "ROE": 0.46, "NPM": 6.8, "GM": 65.6}, "Q4/2567": {"DSO": 8.9, "DIO": 11.2, "DPO": 85.3, "CCC": -65.1, "ROA": 0.28, "ROE": 0.3, "NPM": 2.99, "GM": 71.1}, "Q1/2568": {"DSO": 9.6, "DIO": 13.5, "DPO": 94.8, "CCC": -71.7, "ROA": 1.97, "ROE": 2.13, "NPM": 24.22, "GM": 71.4}, "Q2/2568": {"DSO": 11.8, "DIO": 17.3, "DPO": 93.6, "CCC": -64.5, "ROA": -0.51, "ROE": -0.54, "NPM": -10.18, "GM": 63.7}, "Q3/2568": {"DSO": 9.9, "DIO": 14.7, "DPO": 74.5, "CCC": -49.8, "ROA": 1.09, "ROE": 1.16, "NPM": 18.64, "GM": 64.3}, "Q4/2568": {"DSO": 10.9, "DIO": 12.8, "DPO": 92.9, "CCC": -69.2, "ROA": 0.43, "ROE": 0.46, "NPM": 5.59, "GM": 69.0}}, "SHR": {"Q1/2564": {"DSO": 10.7, "DIO": 28.7, "DPO": 160.7, "CCC": -121.3, "ROA": -0.97, "ROE": -1.97, "NPM": -44.91, "GM": 18.2}, "Q2/2564": {"DSO": 12.5, "DIO": 20.3, "DPO": 159.1, "CCC": -126.3, "ROA": -1.55, "ROE": -3.6, "NPM": -68.19, "GM": 6.3}, "Q3/2564": {"DSO": 10.6, "DIO": 15.1, "DPO": 127.1, "CCC": -101.5, "ROA": -0.75, "ROE": -1.76, "NPM": -19.66, "GM": 28.9}, "Q4/2564": {"DSO": 16.0, "DIO": 13.8, "DPO": 117.8, "CCC": -88.0, "ROA": -0.19, "ROE": -0.44, "NPM": -4.06, "GM": 29.0}, "Q1/2565": {"DSO": 20.6, "DIO": 14.0, "DPO": 115.8, "CCC": -81.1, "ROA": -0.55, "ROE": -1.3, "NPM": -12.0, "GM": 26.0}, "Q2/2565": {"DSO": 18.1, "DIO": 12.8, "DPO": 104.9, "CCC": -74.1, "ROA": -0.26, "ROE": -0.61, "NPM": -4.63, "GM": 31.8}, "Q3/2565": {"DSO": 16.9, "DIO": 12.7, "DPO": 97.0, "CCC": -67.5, "ROA": 0.55, "ROE": 1.25, "NPM": 8.41, "GM": 38.0}, "Q4/2565": {"DSO": 17.3, "DIO": 12.8, "DPO": 93.7, "CCC": -63.6, "ROA": 0.29, "ROE": 0.65, "NPM": 4.21, "GM": 37.9}, "Q1/2566": {"DSO": 16.4, "DIO": 12.7, "DPO": 96.4, "CCC": -67.3, "ROA": 0.34, "ROE": 0.78, "NPM": 4.85, "GM": 37.7}, "Q2/2566": {"DSO": 17.3, "DIO": 13.0, "DPO": 99.3, "CCC": -69.1, "ROA": 0.01, "ROE": 0.02, "NPM": 0.13, "GM": 31.0}, "Q3/2566": {"DSO": 15.3, "DIO": 13.8, "DPO": 103.5, "CCC": -74.5, "ROA": 0.04, "ROE": 0.09, "NPM": 0.6, "GM": 38.0}, "Q4/2566": {"DSO": 15.7, "DIO": 13.5, "DPO": 98.9, "CCC": -69.8, "ROA": -0.15, "ROE": -0.34, "NPM": -2.09, "GM": 41.8}, "Q1/2567": {"DSO": 16.4, "DIO": 12.4, "DPO": 88.5, "CCC": -59.7, "ROA": 0.29, "ROE": 0.67, "NPM": 4.01, "GM": 41.3}, "Q2/2567": {"DSO": 14.8, "DIO": 12.1, "DPO": 70.4, "CCC": -43.4, "ROA": -0.18, "ROE": -0.42, "NPM": -2.83, "GM": 34.4}, "Q3/2567": {"DSO": 12.0, "DIO": 12.4, "DPO": 57.4, "CCC": -33.1, "ROA": -0.14, "ROE": -0.33, "NPM": -2.1, "GM": 38.4}, "Q4/2567": {"DSO": 13.4, "DIO": 12.5, "DPO": 55.1, "CCC": -29.2, "ROA": 0.41, "ROE": 0.94, "NPM": 5.43, "GM": 41.2}, "Q1/2568": {"DSO": 16.6, "DIO": 13.0, "DPO": 52.3, "CCC": -22.7, "ROA": 0.48, "ROE": 1.09, "NPM": 6.63, "GM": 40.2}, "Q2/2568": {"DSO": 15.6, "DIO": 13.2, "DPO": 50.2, "CCC": -21.3, "ROA": 0.07, "ROE": 0.15, "NPM": 1.0, "GM": 37.2}, "Q3/2568": {"DSO": 12.2, "DIO": 13.5, "DPO": 48.5, "CCC": -22.8, "ROA": 0.36, "ROE": 0.82, "NPM": 4.94, "GM": 40.7}, "Q4/2568": {"DSO": 13.0, "DIO": 13.5, "DPO": 51.5, "CCC": -25.1, "ROA": -5.6, "ROE": -13.19, "NPM": -70.24, "GM": 40.4}}, "VRANDA": {"Q1/2564": {"DSO": 7.3, "DIO": 17.7, "DPO": 178.5, "CCC": -153.5, "ROA": -0.66, "ROE": -1.69, "NPM": -9.74, "GM": 68.7}, "Q2/2564": {"DSO": 7.5, "DIO": 21.4, "DPO": 182.1, "CCC": -153.2, "ROA": -0.71, "ROE": -1.77, "NPM": -11.24, "GM": 71.7}, "Q3/2564": {"DSO": 11.8, "DIO": 20.9, "DPO": 178.4, "CCC": -145.7, "ROA": -1.02, "ROE": -2.56, "NPM": -20.77, "GM": 62.3}, "Q4/2564": {"DSO": 9.0, "DIO": 12.5, "DPO": 116.0, "CCC": -94.4, "ROA": 0.26, "ROE": 0.65, "NPM": 3.17, "GM": 64.0}, "Q1/2565": {"DSO": 11.6, "DIO": 12.5, "DPO": 120.0, "CCC": -95.9, "ROA": -0.45, "ROE": -1.11, "NPM": -6.96, "GM": 57.4}, "Q2/2565": {"DSO": 10.9, "DIO": 10.4, "DPO": 98.7, "CCC": -77.5, "ROA": 0.04, "ROE": 0.09, "NPM": 0.53, "GM": 53.1}, "Q3/2565": {"DSO": 11.2, "DIO": 9.6, "DPO": 90.5, "CCC": -69.6, "ROA": 0.04, "ROE": 0.11, "NPM": 0.62, "GM": 49.6}, "Q4/2565": {"DSO": 10.5, "DIO": 9.1, "DPO": 86.3, "CCC": -66.7, "ROA": 0.4, "ROE": 0.97, "NPM": 4.62, "GM": 53.0}, "Q1/2566": {"DSO": 11.3, "DIO": 9.6, "DPO": 95.0, "CCC": -74.1, "ROA": 0.15, "ROE": 0.37, "NPM": 1.85, "GM": 52.8}, "Q2/2566": {"DSO": 11.6, "DIO": 9.6, "DPO": 95.8, "CCC": -74.6, "ROA": -0.32, "ROE": -0.77, "NPM": -4.68, "GM": 44.3}, "Q3/2566": {"DSO": 11.4, "DIO": 9.4, "DPO": 105.6, "CCC": -84.8, "ROA": -0.44, "ROE": -1.06, "NPM": -6.2, "GM": 46.1}, "Q4/2566": {"DSO": 12.2, "DIO": 8.5, "DPO": 121.7, "CCC": -101.0, "ROA": -2.37, "ROE": -6.11, "NPM": -29.99, "GM": 49.5}, "Q1/2567": {"DSO": 11.2, "DIO": 7.5, "DPO": 137.8, "CCC": -119.1, "ROA": 0.75, "ROE": 2.01, "NPM": 8.62, "GM": 54.9}, "Q2/2567": {"DSO": 13.3, "DIO": 7.3, "DPO": 162.6, "CCC": -141.9, "ROA": 0.01, "ROE": 0.04, "NPM": 0.19, "GM": 50.0}, "Q3/2567": {"DSO": 10.7, "DIO": 7.1, "DPO": 168.5, "CCC": -150.7, "ROA": 0.1, "ROE": 0.28, "NPM": 1.31, "GM": 54.1}, "Q4/2567": {"DSO": 11.4, "DIO": 7.2, "DPO": 180.5, "CCC": -161.9, "ROA": 0.17, "ROE": 0.5, "NPM": 2.42, "GM": 47.9}, "Q1/2568": {"DSO": 11.8, "DIO": 6.7, "DPO": 166.0, "CCC": -147.4, "ROA": 0.76, "ROE": 2.3, "NPM": 10.02, "GM": 49.1}, "Q2/2568": {"DSO": 13.3, "DIO": 7.1, "DPO": 144.5, "CCC": -124.1, "ROA": 0.21, "ROE": 0.64, "NPM": 3.78, "GM": 36.7}, "Q3/2568": {"DSO": 10.8, "DIO": 6.8, "DPO": 111.7, "CCC": -94.1, "ROA": 0.03, "ROE": 0.1, "NPM": 0.51, "GM": 41.5}, "Q4/2568": {"DSO": 10.0, "DIO": 7.1, "DPO": 93.9, "CCC": -76.8, "ROA": 0.77, "ROE": 2.36, "NPM": 9.35, "GM": 49.9}}};
+const FIRMS = Object.keys(DATA);
+const YEARS = [2564,2565,2566,2567,2568];
+const QUARTERS = [];
+for(const y of YEARS) for(const q of ["Q1","Q2","Q3","Q4"]) QUARTERS.push(`${q}/${y}`);
+const METRICS = [
+  {k:"ROE",label:"ROE",unit:"%",signed:true,desc:"ผลตอบแทนผู้ถือหุ้นรายไตรมาส — เห็นก้นเหวปี 2564 แล้วไต่ขึ้น + พีคไฮซีซั่น Q1/Q4"},
+  {k:"ROA",label:"ROA",unit:"%",signed:true,desc:"ผลตอบแทนสินทรัพย์รายไตรมาส"},
+  {k:"NPM",label:"NPM",unit:"%",signed:true,desc:"อัตรากำไรสุทธิรายไตรมาส (ติดลบหนักช่วงล็อกดาวน์)"},
+  {k:"GM",label:"Gross Margin",unit:"%",signed:true,desc:"อัตรากำไรขั้นต้น — ฟื้นจากติดลบสู่ปกติเมื่อโรงแรมกลับมาเปิด"},
+  {k:"DSO",label:"DSO",unit:" วัน",signed:false,desc:"ระยะเวลาเก็บหนี้ — สั้นลงเมื่อท่องเที่ยวฟื้น"},
+  {k:"DIO",label:"DIO",unit:" วัน",signed:false,desc:"ระยะเวลาถือสินค้าคงเหลือ"},
+  {k:"DPO",label:"DPO",unit:" วัน",signed:false,desc:"ระยะเวลาจ่ายเจ้าหนี้"},
+  {k:"CCC",label:"CCC",unit:" วัน",signed:true,desc:"วงจรเงินสด = DSO+DIO−DPO (ติดลบ = ได้เงินก่อนจ่าย)"},
+];
+let curMetric = "ROE", curFirm = "__ALL__";
+
+const tt=document.getElementById("tt");
+function showTT(html,x,y){tt.innerHTML=html;tt.style.opacity=1;let nx=x+14,ny=y+14;
+  if(nx>innerWidth-240)nx=x-230;if(ny>innerHeight-120)ny=y-90;tt.style.left=nx+"px";tt.style.top=ny+"px";}
+function hideTT(){tt.style.opacity=0;}
+function cvar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function hx(h){h=h.replace("#","");if(h.length===3)h=h.split("").map(c=>c+c).join("");
+  return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function mix(a,b,t){return `rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(",")})`;}
+
+function vals(firm,metric){return QUARTERS.map(q=>{const d=DATA[firm][q];return d?d[metric]:null;});}
+function fmt(v,u){return v==null?"—":(Math.round(v*100)/100).toLocaleString(undefined,{maximumFractionDigits:2})+u;}
+
+// color scale for heatmap given metric
+function makeScale(metric){
+  const m=METRICS.find(x=>x.k===metric);
+  let all=[];FIRMS.forEach(f=>vals(f,metric).forEach(v=>{if(v!=null)all.push(v);}));
+  const lo=Math.min(...all),hi=Math.max(...all);
+  if(m.signed){
+    const mx=Math.max(Math.abs(lo),Math.abs(hi))||1;
+    const neg=hx(cvar("--neg")),mid=hx(cvar("--mid")),pos=hx(cvar("--pos"));
+    return v=>{if(v==null)return "transparent";const t=Math.max(-1,Math.min(1,v/mx));
+      return t<0?mix(mid,neg,-t):mix(mid,pos,t);};
+  }
+  const s0=hx(cvar("--seq0")),s1=hx(cvar("--seq1"));
+  return v=>{if(v==null)return "transparent";const t=(v-lo)/((hi-lo)||1);return mix(s0,s1,t);};
+}
+
+function renderChips(){
+  const mc=document.getElementById("metricChips");mc.innerHTML="";
+  METRICS.forEach(m=>{const b=document.createElement("button");b.className="chip";b.textContent=m.label;
+    b.setAttribute("aria-pressed",m.k===curMetric);b.onclick=()=>{curMetric=m.k;renderAll();};mc.appendChild(b);});
+  const fc=document.getElementById("firmChips");fc.innerHTML="";
+  [["__ALL__","ทั้งกลุ่ม (มัธยฐาน)"],...FIRMS.map(f=>[f,f])].forEach(([v,lab])=>{
+    const b=document.createElement("button");b.className="chip";b.textContent=lab;
+    b.setAttribute("aria-pressed",v===curFirm);b.onclick=()=>{curFirm=v;renderAll();};fc.appendChild(b);});
+  document.getElementById("mdesc").textContent=METRICS.find(m=>m.k===curMetric).desc;
+}
+
+function median(arr){const a=arr.filter(v=>v!=null).sort((x,y)=>x-y);if(!a.length)return null;
+  const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+
+function renderTrend(){
+  const m=METRICS.find(x=>x.k===curMetric);
+  const W=Math.min(1060,(document.querySelector(".wrap").clientWidth||960)-44),H=340;
+  const mL=48,mR=14,mT=16,mB=40,iw=W-mL-mR,ih=H-mT-mB;
+  let all=[];FIRMS.forEach(f=>vals(f,curMetric).forEach(v=>{if(v!=null)all.push(v);}));
+  let lo=Math.min(...all),hi=Math.max(...all);const pad=(hi-lo)*.06||1;lo-=pad;hi+=pad;
+  if(m.signed){if(lo>0)lo=0;if(hi<0)hi=0;}
+  const x=i=>mL+iw*(i/(QUARTERS.length-1));
+  const y=v=>mT+ih*(1-(v-lo)/((hi-lo)||1));
+  const NS="http://www.w3.org/2000/svg";
+  const svg=document.createElementNS(NS,"svg");svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.setAttribute("role","img");
+  const add=(t,a,txt)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;svg.appendChild(e);return e;};
+  // COVID band (2564 = first 4 quarters)
+  add("rect",{x:x(0),y:mT,width:x(3.5)-x(0),height:ih,fill:cvar("--covid")});
+  add("text",{x:(x(0)+x(3.5))/2,y:mT+13,"text-anchor":"middle",fill:cvar("--covid-line"),"font-size":11,"font-weight":600},"โควิด 2564");
+  // zero line
+  if(m.signed&&lo<0&&hi>0){add("line",{x1:mL,x2:mL+iw,y1:y(0),y2:y(0),stroke:cvar("--axis"),"stroke-width":1.5});
+    add("text",{x:mL-6,y:y(0)+3,"text-anchor":"end",fill:cvar("--muted"),"font-size":10},"0");}
+  // y gridlines
+  for(let g=0;g<=4;g++){const vv=lo+(hi-lo)*g/4;const yy=y(vv);
+    add("line",{x1:mL,x2:mL+iw,y1:yy,y2:yy,stroke:cvar("--grid"),"stroke-width":1});
+    add("text",{x:mL-6,y:yy+3,"text-anchor":"end",fill:cvar("--muted"),"font-size":10},(Math.round(vv*10)/10));}
+  // year dividers + labels
+  YEARS.forEach((yr,yi)=>{const xi=x(yi*4-0.5);if(yi>0)add("line",{x1:xi,x2:xi,y1:mT,y2:mT+ih,stroke:cvar("--grid"),"stroke-width":1,"stroke-dasharray":"2 3"});
+    add("text",{x:x(yi*4+1.5),y:H-8,"text-anchor":"middle",fill:cvar("--ink2"),"font-size":11.5,"font-weight":600},yr);});
+  // context: all firms thin gray
+  FIRMS.forEach(f=>{const vs=vals(f,curMetric);const pts=vs.map((v,i)=>v==null?null:[x(i),y(v)]).filter(Boolean);
+    if(pts.length<2)return;const d=pts.map((p,i)=>`${i?"L":"M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("");
+    const faint=curFirm==="__ALL__"?.38:(f===curFirm?0:.14);
+    const p=add("path",{d,fill:"none",stroke:cvar("--muted"),"stroke-width":1.2,"stroke-opacity":faint,"stroke-linejoin":"round"});
+    if(curFirm==="__ALL__"){p.style.cursor="pointer";
+      p.addEventListener("mousemove",e=>{p.setAttribute("stroke",cvar("--ink2"));p.setAttribute("stroke-opacity",1);p.setAttribute("stroke-width",2);
+        showTT(`<b>${f}</b> <span class="k">คลิกชิปเพื่อเจาะ</span>`,e.clientX,e.clientY);});
+      p.addEventListener("mouseleave",()=>{p.setAttribute("stroke",cvar("--muted"));p.setAttribute("stroke-opacity",.38);p.setAttribute("stroke-width",1.2);hideTT();});}
+  });
+  // focus line: a firm, or the sector median
+  let focusVals,focusName;
+  if(curFirm==="__ALL__"){focusVals=QUARTERS.map((_,i)=>median(FIRMS.map(f=>vals(f,curMetric)[i])));focusName="มัธยฐานกลุ่ม";}
+  else{focusVals=vals(curFirm,curMetric);focusName=curFirm;}
+  const fp=focusVals.map((v,i)=>v==null?null:[x(i),y(v)]).filter(Boolean);
+  if(fp.length>1){const d=fp.map((p,i)=>`${i?"L":"M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("");
+    add("path",{d,fill:"none",stroke:cvar("--accent"),"stroke-width":2.6,"stroke-linejoin":"round","stroke-linecap":"round"});}
+  focusVals.forEach((v,i)=>{if(v==null)return;const cx=x(i),cy=y(v);
+    const dot=add("circle",{cx,cy,r:3.5,fill:cvar("--accent"),stroke:cvar("--surface"),"stroke-width":1.5});
+    dot.style.cursor="pointer";
+    const hit=add("circle",{cx,cy,r:11,fill:"transparent"});hit.style.cursor="pointer";
+    const show=e=>showTT(`<b>${focusName}</b> · ${QUARTERS[i]}<br>${m.label}: <b>${fmt(v,m.unit)}</b>`,e.clientX,e.clientY);
+    hit.addEventListener("mousemove",show);hit.addEventListener("mouseleave",hideTT);});
+  const el=document.getElementById("trend");el.innerHTML="";el.appendChild(svg);
+  document.getElementById("trendTitle").textContent=`${m.label} — ${curFirm==="__ALL__"?"ทั้ง 10 บริษัท + มัธยฐานกลุ่ม":curFirm+" (เจาะ) เทียบพื้นหลังทั้งกลุ่ม"}`;
+  document.getElementById("trendSub").textContent=`เส้นทึบ = ${curFirm==="__ALL__"?"มัธยฐานกลุ่ม":curFirm} · เส้นจาง = บริษัทอื่น · หน่วย ${m.unit.trim()||"%"}`;
+}
+
+function renderHeat(){
+  const m=METRICS.find(x=>x.k===curMetric),scale=makeScale(curMetric);
+  const NS="http://www.w3.org/2000/svg";
+  const rowH=26,colW=34,labW=64,topH=34;
+  const W=labW+colW*QUARTERS.length+6,H=topH+rowH*FIRMS.length+6;
+  const svg=document.createElementNS(NS,"svg");svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.setAttribute("width",W);
+  const add=(t,a,txt)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;svg.appendChild(e);return e;};
+  // year headers + Q labels
+  YEARS.forEach((yr,yi)=>{const x0=labW+colW*(yi*4);
+    add("text",{x:x0+colW*2,y:12,"text-anchor":"middle",fill:cvar("--ink2"),"font-size":11,"font-weight":600},yr);
+    if(yi>0)add("line",{x1:x0,x2:x0,y1:16,y2:H-4,stroke:cvar("--axis"),"stroke-width":1});});
+  ["Q1","Q2","Q3","Q4"].forEach(()=>{});
+  QUARTERS.forEach((q,i)=>add("text",{x:labW+colW*i+colW/2,y:28,"text-anchor":"middle",fill:cvar("--muted"),"font-size":9},q.slice(0,2)));
+  FIRMS.forEach((f,r)=>{const yy=topH+r*rowH;
+    add("text",{x:0,y:yy+rowH/2+4,fill:cvar("--ink"),"font-size":11.5,"font-weight":600},f);
+    QUARTERS.forEach((q,i)=>{const v=DATA[f][q]?DATA[f][q][curMetric]:null;const xx=labW+colW*i;
+      const rect=add("rect",{x:xx+1.5,y:yy+1.5,width:colW-3,height:rowH-3,rx:3,fill:scale(v),stroke:cvar("--ring"),"stroke-width":.5});
+      rect.style.cursor="pointer";
+      rect.addEventListener("mousemove",e=>showTT(`<b>${f}</b> · ${q}<br>${m.label}: <b>${fmt(v,m.unit)}</b>`,e.clientX,e.clientY));
+      rect.addEventListener("mouseleave",hideTT);});
+  });
+  const h=document.getElementById("heatmap");h.innerHTML="";h.appendChild(svg);
+  // legend
+  const lg=document.getElementById("hmLegend");
+  if(m.signed) lg.innerHTML=`<span><span class="sw" style="background:linear-gradient(90deg,var(--neg),var(--mid),var(--pos))"></span>ต่ำ/ติดลบ → 0 → สูง/บวก</span><span><span class="covid-key"></span>ปี 2564 = ช่วงโควิด</span>`;
+  else lg.innerHTML=`<span><span class="sw" style="background:linear-gradient(90deg,var(--seq0),var(--seq1))"></span>น้อย → มาก (วัน)</span><span><span class="covid-key"></span>ปี 2564 = ช่วงโควิด</span>`;
+}
+
+function renderAll(){renderChips();renderTrend();renderHeat();}
+renderAll();
+addEventListener("resize",()=>{renderTrend();renderHeat();});
+new MutationObserver(renderAll).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+</script>
