@@ -509,6 +509,44 @@ def compute_quarter(rec):
 
 
 BS_ITEMS = ["trade_receivables", "inventory", "trade_payables", "total_assets", "total_equity"]
+FLOW_ITEMS = ["total_revenue", "cogs", "net_profit_total", "net_profit_parent",
+              "other_income", "revenue_main"]
+
+
+def _cumulative_year(by_tag):
+    """จริงถ้าปีนี้ยื่นงบแบบสะสม (YTD) — Q2=6เดือน / Q3=9เดือน (MANRIN 2564-66)
+    ต่างจากงบไตรมาส SET มาตรฐานที่แต่ละไตรมาสเป็นตัวเลข 3 เดือนแยก
+    """
+    return any(by_tag.get(t, {}).get("is_cumulative") for t in ("Q2", "Q3"))
+
+
+def _decumulate(by_tag):
+    """แปลงงบสะสม -> ตัวเลข 3 เดือนจริง (ลบยอดสะสมงวดก่อน) เฉพาะรายการ flow
+    ยอดงบดุล (stock) เป็น point-in-time อยู่แล้ว ไม่แตะ
+    จุดที่ 4 = ไฟล์ Q4 (12 เดือน) หรือ FY ถ้าไม่มี Q4
+    """
+    seq = []
+    for t in ("Q1", "Q2", "Q3"):
+        if t in by_tag:
+            seq.append(by_tag[t])
+    last = by_tag.get("Q4") or by_tag.get("FY")
+    if last is not None:
+        seq.append(last)
+    out = []
+    prev = {k: 0.0 for k in FLOW_ITEMS}
+    for i, rec in enumerate(seq):
+        nr = dict(rec)
+        nr["quarter"] = ("Q1", "Q2", "Q3", "Q4")[i]      # จุดที่ 4 = Q4 เสมอ
+        nr["is_annual"] = False
+        for k in FLOW_ITEMS:
+            v = rec.get(k)
+            if v is not None:
+                nr[k] = v - prev[k]
+                prev[k] = v
+        out.append(nr)
+    return out
+
+
 def compute_group(by_tag):
     """คำนวณ 7 ตัวชี้วัดของทั้งปี โดย chain ยอดปลายไตรมาสก่อนหน้าเป็นยอดต้นงวด
 
@@ -517,10 +555,16 @@ def compute_group(by_tag):
       Q3 avg = (มิ.ย., ก.ย.)   Q4 avg = (ก.ย., ธ.ค.)
     คืน list ของ (rec, metrics) เรียงตามไตรมาสที่มี
     """
-    seq = [by_tag[t] for t in ("Q1", "Q2", "Q3") if t in by_tag]
-    q4 = derive_q4(by_tag)
-    if q4:
-        seq.append(q4)
+    if _cumulative_year(by_tag):
+        seq = _decumulate(by_tag)         # งบสะสม (MANRIN 2564-66) -> 3 เดือนจริง
+    else:
+        seq = [by_tag[t] for t in ("Q1", "Q2", "Q3") if t in by_tag]
+        if "Q4" in by_tag:
+            seq.append(by_tag["Q4"])      # Q4 จริง (งบ 3 เดือน) — ใช้ตรงถ้ามี
+        else:
+            q4 = derive_q4(by_tag)        # ไม่มี Q4 จริง -> derive จาก FY = FY-Q1-Q2-Q3
+            if q4:
+                seq.append(q4)
     if not seq:
         return []
     # ยอดต้นงวดของไตรมาสแรกในลำดับ = ยอด 'ต้นปี' (คอลัมน์เทียบของไฟล์ Q1)

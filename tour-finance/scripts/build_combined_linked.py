@@ -83,25 +83,46 @@ def build_is_flow(wb, alldata):
         hdr += [f"Q1/{y}", f"Q2/{y}", f"Q3/{y}", f"Q4/{y}", f"FY{y}"]
     ncol = len(hdr)
     ws.append(hdr)
+    import extract_set as E
     for i, t in enumerate(TICKERS):
         data = alldata[t]
         title_row(ws, is_title(i), f"■ {t}", ncol)
+        # เตรียมค่า 3 เดือนจริงต่อปี (de-cumulate งบสะสม + derive Q4 ผ่าน compute_group)
+        peryear = {}
+        for y in YEARS:
+            recs = data.get(y, {})
+            qflow = {rec["quarter"]: rec for rec, _ in E.compute_group(recs)}
+            peryear[y] = (qflow, recs.get("FY"),
+                          (recs.get("FY") is not None) and not E._cumulative_year(recs))
         for k, (label, key) in enumerate(zip(IS_ROWS, IS_KEYS)):
             r = is_row(i, k)
             ws.cell(r, 1, label).font = BOLD
             for yi, y in enumerate(YEARS):
                 base = 2 + yi * 5
                 cq1, cq2, cq3, cq4, cfy = base, base + 1, base + 2, base + 3, base + 4
-                recs = data.get(y, {})
-                for tag, col in [("Q1", cq1), ("Q2", cq2), ("Q3", cq3), ("FY", cfy)]:
-                    rec = recs.get(tag)
+                qflow, fy_rec, std_q4 = peryear[y]
+                for qi, col in enumerate((cq1, cq2, cq3)):
+                    rec = qflow.get(("Q1", "Q2", "Q3")[qi])
                     v = rec.get(key) if rec else None
                     ws.cell(r, col).value = round(v, 3) if isinstance(v, (int, float)) else None
                     if v is None:
                         ws.cell(r, col).fill = INPUT_FILL
-                ws.cell(r, cq4).value = (f"={GL(cfy)}{r}-{GL(cq1)}{r}"
-                                         f"-{GL(cq2)}{r}-{GL(cq3)}{r}")
-                ws.cell(r, cq4).fill = DERIVED_FILL
+                if std_q4:
+                    ws.cell(r, cq4).value = (f"={GL(cfy)}{r}-{GL(cq1)}{r}"
+                                             f"-{GL(cq2)}{r}-{GL(cq3)}{r}")
+                    ws.cell(r, cq4).fill = DERIVED_FILL
+                else:
+                    r4 = qflow.get("Q4")
+                    v4 = r4.get(key) if r4 else None
+                    ws.cell(r, cq4).value = round(v4, 3) if isinstance(v4, (int, float)) else None
+                    if v4 is None:
+                        ws.cell(r, cq4).fill = INPUT_FILL
+                if fy_rec is not None and isinstance(fy_rec.get(key), (int, float)):
+                    ws.cell(r, cfy).value = round(fy_rec[key], 3)
+                else:
+                    ws.cell(r, cfy).value = (f"={GL(cq1)}{r}+{GL(cq2)}{r}"
+                                             f"+{GL(cq3)}{r}+{GL(cq4)}{r}")
+                    ws.cell(r, cfy).fill = DERIVED_FILL
     style_header(ws, 1)
     ws.column_dimensions["A"].width = 26
     ws.freeze_panes = "B2"

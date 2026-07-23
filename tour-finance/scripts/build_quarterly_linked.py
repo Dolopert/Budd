@@ -100,22 +100,40 @@ def build_is_flow(wb, data):
     ws.append(hdr)
     for label in IS_ROWS:
         ws.append([label])
-    # เติมค่า + วางสูตร Q4
-    for ri, key in enumerate(IS_KEYS, start=2):
-        for yi, y in enumerate(YEARS):
-            base = 2 + yi * 5              # col Q1
+    # เติมค่า 3 เดือนจริง — ดึงผ่าน compute_group เพื่อ de-cumulate งบสะสม (MANRIN)
+    # และ derive Q4 ให้ถูกต้องทุกรูปแบบการยื่นงบ
+    for yi, y in enumerate(YEARS):
+        base = 2 + yi * 5                  # col Q1
+        recs = data.get(y, {})
+        qflow = {rec["quarter"]: rec for rec, _ in E.compute_group(recs)}
+        fy_rec = recs.get("FY")
+        # Q4 ผูกสูตร =FY−Q1−Q2−Q3 ได้เฉพาะงบมาตรฐาน (มี FY + ไม่ใช่งบสะสม)
+        std_q4 = (fy_rec is not None) and not E._cumulative_year(recs)
+        for ri, key in enumerate(IS_KEYS, start=2):
             cq1, cq2, cq3, cq4, cfy = base, base + 1, base + 2, base + 3, base + 4
-            recs = data.get(y, {})
-            for tag, col in [("Q1", cq1), ("Q2", cq2), ("Q3", cq3), ("FY", cfy)]:
-                rec = recs.get(tag)
+            for qi, col in enumerate((cq1, cq2, cq3)):
+                rec = qflow.get(("Q1", "Q2", "Q3")[qi])
                 v = rec.get(key) if rec else None
                 ws.cell(ri, col).value = round(v, 3) if isinstance(v, (int, float)) else None
                 if v is None:
                     ws.cell(ri, col).fill = INPUT_FILL
-            # Q4 = FY − Q1 − Q2 − Q3 (สูตรสด)
-            ws.cell(ri, cq4).value = (f"={GL(cfy)}{ri}-{GL(cq1)}{ri}"
-                                      f"-{GL(cq2)}{ri}-{GL(cq3)}{ri}")
-            ws.cell(ri, cq4).fill = DERIVED_FILL
+            if std_q4:                     # Q4 = FY − Q1 − Q2 − Q3 (สูตรสด)
+                ws.cell(ri, cq4).value = (f"={GL(cfy)}{ri}-{GL(cq1)}{ri}"
+                                          f"-{GL(cq2)}{ri}-{GL(cq3)}{ri}")
+                ws.cell(ri, cq4).fill = DERIVED_FILL
+            else:                          # งบสะสม/ไม่มี FY -> ใส่ค่า Q4 จริง
+                r4 = qflow.get("Q4")
+                v4 = r4.get(key) if r4 else None
+                ws.cell(ri, cq4).value = round(v4, 3) if isinstance(v4, (int, float)) else None
+                if v4 is None:
+                    ws.cell(ri, cq4).fill = INPUT_FILL
+            # FY: ค่ารายปีจริงถ้ามีไฟล์ FY, มิฉะนั้นผลรวม 4 ไตรมาส (สูตร)
+            if fy_rec is not None and isinstance(fy_rec.get(key), (int, float)):
+                ws.cell(ri, cfy).value = round(fy_rec[key], 3)
+            else:
+                ws.cell(ri, cfy).value = (f"={GL(cq1)}{ri}+{GL(cq2)}{ri}"
+                                          f"+{GL(cq3)}{ri}+{GL(cq4)}{ri}")
+                ws.cell(ri, cfy).fill = DERIVED_FILL
     for r in range(2, 2 + len(IS_ROWS)):
         ws.cell(r, 1).font = BOLD
     style_header(ws, 1)
