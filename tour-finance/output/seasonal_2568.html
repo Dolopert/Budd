@@ -1,0 +1,243 @@
+<title>ฤดูกาลรายไตรมาส TOUR — FY2568</title>
+<style>
+  .viz-root{
+    color-scheme:light;
+    --plane:#f9f9f7; --surface:#fcfcfb;
+    --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,.10);
+    --series:#256abf;
+    --div-neg:#256abf; --div-mid:#f0efec; --div-pos:#d03b3b;
+    --chip:#efeee9; --chip-on:#0b0b0b;
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:var(--plane); color:var(--ink);
+    min-height:100vh; margin:0; padding:24px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:where(:not([data-theme="light"])) .viz-root{
+      color-scheme:dark;
+      --plane:#0d0d0d; --surface:#1a1a19;
+      --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.10);
+      --series:#3987e5;
+      --div-neg:#3987e5; --div-mid:#383835; --div-pos:#e66767;
+      --chip:#242422; --chip-on:#fff;
+    }
+  }
+  :root[data-theme="dark"] .viz-root{
+    color-scheme:dark;
+    --plane:#0d0d0d; --surface:#1a1a19;
+    --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.10);
+    --series:#3987e5;
+    --div-neg:#3987e5; --div-mid:#383835; --div-pos:#e66767;
+    --chip:#242422; --chip-on:#fff;
+  }
+  .viz-root *{box-sizing:border-box}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--ink2);font-size:14px;margin:0 0 20px;line-height:1.5}
+  .card{background:var(--surface);border:1px solid var(--ring);border-radius:12px;padding:18px 20px;margin-bottom:18px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+  .chip{border:1px solid var(--ring);background:var(--chip);color:var(--ink2);
+    border-radius:999px;padding:7px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+  .chip[aria-pressed="true"]{background:var(--chip-on);color:var(--surface);border-color:var(--chip-on);font-weight:600}
+  .metric-desc{font-size:13px;color:var(--ink2);margin:10px 2px 0;min-height:18px}
+  .lohi{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;margin:2px}
+  .swatch{width:120px;height:10px;border-radius:3px;
+    background:linear-gradient(90deg,var(--div-neg),var(--div-mid),var(--div-pos))}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+  th,td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--grid)}
+  th:first-child,td:first-child{text-align:left;font-weight:600}
+  thead th{color:var(--ink2);font-weight:600;border-bottom:1px solid var(--axis)}
+  .section-t{font-size:15px;font-weight:600;margin:0 0 12px}
+  .hint{font-size:12px;color:var(--muted);margin:8px 2px 0;line-height:1.5}
+  .scroll{overflow-x:auto}
+  svg{display:block;max-width:100%;height:auto}
+  .tt{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--ring);
+    border-radius:8px;padding:8px 10px;font-size:12px;color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.14);
+    opacity:0;transition:opacity .1s;z-index:10;max-width:220px}
+  .tt b{color:var(--ink)}
+  .cell-txt{font-size:11px;font-variant-numeric:tabular-nums}
+</style>
+
+<div class="viz-root">
+<div class="wrap">
+  <h1>ฤดูกาลรายไตรมาส — หุ้นกลุ่ม TOUR ปี 2568</h1>
+  <p class="sub">แสดง "รูปแบบฤดูกาล" ของแต่ละบริษัท โดยเทียบแต่ละไตรมาสกับ<b>ค่าเฉลี่ยของบริษัทนั้นเอง</b>
+  (ตัดผลของขนาดบริษัทออก เพื่อดูว่าใครพุ่ง/ตกในไตรมาสไหน) — สีแดง = สูงกว่าค่าเฉลี่ยตนเอง, น้ำเงิน = ต่ำกว่า ·
+  ตัวเลขในช่อง = ค่าจริง</p>
+
+  <div class="card">
+    <div class="chips" id="chips"></div>
+    <div class="metric-desc" id="mdesc"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-t">รูปแบบฤดูกาล (เส้นเทา = 10 บริษัท · เส้นทึบ = ค่าเฉลี่ยกลุ่ม)</div>
+    <div id="linechart"></div>
+    <div class="hint">แกนตั้ง = เบี่ยงเบนจากค่าเฉลี่ยตนเอง (+1 = ไตรมาสสูงสุดของบริษัทนั้น, −1 = ต่ำสุด) — เห็น "รูปทรง" ฤดูกาลได้แม้ขนาดบริษัทต่างกัน</div>
+  </div>
+
+  <div class="card">
+    <div class="section-t">Heatmap — บริษัท × ไตรมาส</div>
+    <div class="lohi"><span>ต่ำกว่าเฉลี่ย</span><span class="swatch"></span><span>สูงกว่าเฉลี่ย</span></div>
+    <div class="scroll" id="heatmap"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-t">ตารางค่าจริงรายไตรมาส</div>
+    <div class="scroll"><table id="tbl"></table></div>
+    <div class="hint" id="tblhint"></div>
+  </div>
+
+  <p class="hint">ที่มา: งบการเงินที่ตลาดหลักทรัพย์เผยแพร่ (สอบทาน/ตรวจสอบ) · ฐาน CFA · Q4 = FY−Q1−Q2−Q3 ·
+  DSO/DIO/DPO/CCC หน่วยวัน, ROA/ROE/NPM หน่วย % ต่อไตรมาส (ไม่ annualize) ·
+  ข้อมูลปี 2568 เท่านั้น — ยังไม่ครอบคลุมปี 2564–2567</p>
+</div>
+
+<div class="tt" id="tt"></div>
+</div>
+
+<script>
+const DATA = {"ASIA": {"Q1": {"DSO": 22.4, "DIO": 17.8, "DPO": 12.5, "CCC": 27.6, "ROA": 0.14, "ROE": 0.24, "NPM": 4.21}, "Q2": {"DSO": 24.4, "DIO": 17.8, "DPO": 11.6, "CCC": 30.6, "ROA": -0.15, "ROE": -0.25, "NPM": -4.89}, "Q3": {"DSO": 24.4, "DIO": 17.8, "DPO": 10.8, "CCC": 31.4, "ROA": -0.06, "ROE": -0.1, "NPM": -1.89}, "Q4": {"DSO": 21.1, "DIO": 17.7, "DPO": 11.6, "CCC": 27.1, "ROA": 0.03, "ROE": 0.06, "NPM": 0.83}}, "CENTEL": {"Q1": {"DSO": 15.8, "DIO": 23.1, "DPO": 102.7, "CCC": -63.8, "ROA": 1.26, "ROE": 3.57, "NPM": 11.37}, "Q2": {"DSO": 15.3, "DIO": 22.4, "DPO": 87.8, "CCC": -50.1, "ROA": 0.14, "ROE": 0.4, "NPM": 1.49}, "Q3": {"DSO": 12.8, "DIO": 22.4, "DPO": 91.6, "CCC": -56.4, "ROA": 0.23, "ROE": 0.65, "NPM": 2.46}, "Q4": {"DSO": 12.0, "DIO": 21.9, "DPO": 97.2, "CCC": -63.3, "ROA": 1.57, "ROE": 4.39, "NPM": 14.27}}, "DUSIT": {"Q1": {"DSO": 47.3, "DIO": 8.7, "DPO": 131.5, "CCC": -75.5, "ROA": 0.09, "ROE": 0.41, "NPM": 1.54}, "Q2": {"DSO": 66.5, "DIO": 10.7, "DPO": 156.6, "CCC": -79.4, "ROA": -0.84, "ROE": -3.78, "NPM": -18.98}, "Q3": {"DSO": 61.2, "DIO": 9.8, "DPO": 141.0, "CCC": -69.9, "ROA": -1.1, "ROE": -5.17, "NPM": -24.14}, "Q4": {"DSO": 38.9, "DIO": 6.5, "DPO": 99.8, "CCC": -54.4, "ROA": 0.61, "ROE": 2.97, "NPM": 7.71}}, "ERW": {"Q1": {"DSO": 8.1, "DIO": 4.5, "DPO": 23.7, "CCC": -11.1, "ROA": 1.39, "ROE": 3.74, "NPM": 16.98}, "Q2": {"DSO": 7.3, "DIO": 4.6, "DPO": 18.9, "CCC": -7.0, "ROA": 0.27, "ROE": 0.72, "NPM": 3.98}, "Q3": {"DSO": 7.1, "DIO": 4.7, "DPO": 19.2, "CCC": -7.4, "ROA": 0.23, "ROE": 0.63, "NPM": 3.34}, "Q4": {"DSO": 7.9, "DIO": 4.6, "DPO": 24.1, "CCC": -11.7, "ROA": 1.59, "ROE": 4.28, "NPM": 18.25}}, "MANRIN": {"Q1": {"DSO": 13.5, "DIO": 2.5, "DPO": 59.3, "CCC": -43.3, "ROA": 2.07, "ROE": 3.17, "NPM": 14.42}, "Q2": {"DSO": 18.0, "DIO": 2.5, "DPO": 58.8, "CCC": -38.3, "ROA": 0.55, "ROE": 0.81, "NPM": 4.86}, "Q3": {"DSO": 12.9, "DIO": 1.9, "DPO": 56.2, "CCC": -41.4, "ROA": 1.77, "ROE": 2.56, "NPM": 12.45}, "Q4": {"DSO": 11.4, "DIO": 2.3, "DPO": 57.4, "CCC": -43.7, "ROA": 1.55, "ROE": 2.16, "NPM": 10.75}}, "MINT": {"Q1": {"DSO": 34.9, "DIO": 18.0, "DPO": 104.5, "CCC": -51.6, "ROA": 0.17, "ROE": 0.62, "NPM": 1.64}, "Q2": {"DSO": 32.1, "DIO": 17.0, "DPO": 96.1, "CCC": -47.0, "ROA": 0.92, "ROE": 3.36, "NPM": 7.64}, "Q3": {"DSO": 37.1, "DIO": 17.4, "DPO": 101.7, "CCC": -47.3, "ROA": 0.74, "ROE": 2.75, "NPM": 6.48}, "Q4": {"DSO": 35.0, "DIO": 16.7, "DPO": 102.9, "CCC": -51.2, "ROA": 0.91, "ROE": 3.38, "NPM": 7.38}}, "OHTL": {"Q1": {"DSO": 9.9, "DIO": 7.0, "DPO": 87.0, "CCC": -70.1, "ROA": 3.38, "ROE": 7.51, "NPM": 24.56}, "Q2": {"DSO": 16.5, "DIO": 7.1, "DPO": 88.9, "CCC": -65.4, "ROA": -0.38, "ROE": -0.81, "NPM": -5.01}, "Q3": {"DSO": 14.1, "DIO": 7.4, "DPO": 109.0, "CCC": -87.4, "ROA": -0.45, "ROE": -0.98, "NPM": -5.44}, "Q4": {"DSO": 10.4, "DIO": 8.2, "DPO": 130.7, "CCC": -112.1, "ROA": 2.82, "ROE": 6.17, "NPM": 20.34}}, "SHANG": {"Q1": {"DSO": 9.6, "DIO": 13.5, "DPO": 94.8, "CCC": -71.7, "ROA": 1.97, "ROE": 2.13, "NPM": 24.22}, "Q2": {"DSO": 11.8, "DIO": 17.3, "DPO": 93.6, "CCC": -64.5, "ROA": -0.51, "ROE": -0.54, "NPM": -10.18}, "Q3": {"DSO": 9.9, "DIO": 14.7, "DPO": 74.5, "CCC": -49.8, "ROA": 1.09, "ROE": 1.16, "NPM": 18.64}, "Q4": {"DSO": 10.9, "DIO": 12.8, "DPO": 92.9, "CCC": -69.2, "ROA": 0.43, "ROE": 0.46, "NPM": 5.59}}, "SHR": {"Q1": {"DSO": 16.6, "DIO": 13.0, "DPO": 52.3, "CCC": -22.7, "ROA": 0.48, "ROE": 1.09, "NPM": 6.63}, "Q2": {"DSO": 15.6, "DIO": 13.2, "DPO": 50.2, "CCC": -21.3, "ROA": 0.07, "ROE": 0.15, "NPM": 1.0}, "Q3": {"DSO": 12.2, "DIO": 13.5, "DPO": 48.5, "CCC": -22.8, "ROA": 0.36, "ROE": 0.82, "NPM": 4.94}, "Q4": {"DSO": 13.0, "DIO": 13.5, "DPO": 51.5, "CCC": -25.1, "ROA": -5.6, "ROE": -13.19, "NPM": -70.24}}, "VRANDA": {"Q1": {"DSO": 11.8, "DIO": 6.7, "DPO": 166.0, "CCC": -147.4, "ROA": 0.76, "ROE": 2.3, "NPM": 10.02}, "Q2": {"DSO": 13.3, "DIO": 7.1, "DPO": 144.5, "CCC": -124.1, "ROA": 0.21, "ROE": 0.64, "NPM": 3.78}, "Q3": {"DSO": 10.8, "DIO": 6.8, "DPO": 111.7, "CCC": -94.1, "ROA": 0.03, "ROE": 0.1, "NPM": 0.51}, "Q4": {"DSO": 10.0, "DIO": 7.1, "DPO": 93.9, "CCC": -76.8, "ROA": 0.77, "ROE": 2.36, "NPM": 9.35}}};
+const TICKERS = Object.keys(DATA);
+const QS = ["Q1","Q2","Q3","Q4"];
+const METRICS = [
+  {k:"ROE", label:"ROE", unit:"%", desc:"อัตราผลตอบแทนผู้ถือหุ้นรายไตรมาส — เห็นกำไรพุ่งช่วงไฮซีซั่นชัดที่สุด"},
+  {k:"ROA", label:"ROA", unit:"%", desc:"อัตราผลตอบแทนสินทรัพย์รายไตรมาส"},
+  {k:"NPM", label:"NPM", unit:"%", desc:"อัตรากำไรสุทธิรายไตรมาส"},
+  {k:"DSO", label:"DSO", unit:" วัน", desc:"ระยะเวลาเก็บหนี้ — ลูกค้าจ่ายช้า/เร็วตามฤดูกาล"},
+  {k:"DIO", label:"DIO", unit:" วัน", desc:"ระยะเวลาถือสินค้าคงเหลือ"},
+  {k:"DPO", label:"DPO", unit:" วัน", desc:"ระยะเวลาจ่ายเจ้าหนี้ — เหวี่ยงตามรอบธุรกิจ"},
+  {k:"CCC", label:"CCC", unit:" วัน", desc:"วงจรเงินสด = DSO+DIO−DPO (ติดลบ = ได้เงินก่อนจ่าย)"},
+];
+let current = "ROE";
+
+const tt = document.getElementById("tt");
+function showTT(html,x,y){tt.innerHTML=html;tt.style.opacity=1;
+  let nx=x+14,ny=y+14; if(nx>innerWidth-230)nx=x-224; tt.style.left=nx+"px";tt.style.top=ny+"px";}
+function hideTT(){tt.style.opacity=0;}
+
+function cssvar(n){return getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(n).trim();}
+function hex2rgb(h){h=h.replace("#","");if(h.length===3)h=h.split("").map(c=>c+c).join("");
+  return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function lerp(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t));}
+function rgb(a){return `rgb(${a[0]},${a[1]},${a[2]})`;}
+// t in [-1,1] -> diverging color
+function divColor(t){
+  const neg=hex2rgb(cssvar("--div-neg")),mid=hex2rgb(cssvar("--div-mid")),pos=hex2rgb(cssvar("--div-pos"));
+  if(t<=0)return rgb(lerp(mid,neg,Math.min(1,-t)));
+  return rgb(lerp(mid,pos,Math.min(1,t)));
+}
+
+// per company: mean + normalized deviation t per quarter
+function series(metric){
+  return TICKERS.map(tk=>{
+    const vals = QS.map(q=>DATA[tk][q][metric]);
+    const mean = vals.reduce((a,b)=>a+b,0)/4;
+    const dev = vals.map(v=>v-mean);
+    const maxAbs = Math.max(...dev.map(Math.abs))||1;
+    const t = dev.map(d=>d/maxAbs);          // [-1,1]
+    return {tk,vals,mean,t};
+  });
+}
+
+function fmt(v,unit){return (Math.round(v*100)/100).toLocaleString(undefined,{maximumFractionDigits:2})+unit;}
+
+function renderChips(){
+  const c=document.getElementById("chips");c.innerHTML="";
+  METRICS.forEach(m=>{
+    const b=document.createElement("button");
+    b.className="chip";b.textContent=m.label;b.setAttribute("aria-pressed",m.k===current);
+    b.onclick=()=>{current=m.k;renderAll();};
+    c.appendChild(b);
+  });
+  document.getElementById("mdesc").textContent = METRICS.find(m=>m.k===current).desc;
+}
+
+function renderLine(){
+  const S=series(current);
+  const W=Math.min(1000, (document.querySelector(".wrap").clientWidth||900)-40), H=300;
+  const mL=44,mR=16,mT=14,mB=28, iw=W-mL-mR, ih=H-mT-mB;
+  const x=i=>mL+iw*(i/3);
+  const y=t=>mT+ih*((1.1-t)/2.2);
+  const NS="http://www.w3.org/2000/svg";
+  const svg=document.createElementNS(NS,"svg");svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  svg.setAttribute("role","img");
+  const add=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);svg.appendChild(e);return e;};
+  // gridlines at -1,0,1
+  [-1,0,1].forEach(g=>{
+    add("line",{x1:mL,x2:mL+iw,y1:y(g),y2:y(g),stroke:g===0?cssvar("--axis"):cssvar("--grid"),"stroke-width":g===0?1.5:1});
+    add("text",{x:mL-8,y:y(g)+4,"text-anchor":"end",fill:cssvar("--muted"),"font-size":11}).textContent=g>0?"+"+g:g;
+  });
+  QS.forEach((q,i)=>add("text",{x:x(i),y:H-8,"text-anchor":"middle",fill:cssvar("--muted"),"font-size":12}).textContent=q);
+  // context lines (muted gray)
+  S.forEach(s=>{
+    const d=s.t.map((t,i)=>`${i?"L":"M"}${x(i)},${y(t)}`).join("");
+    const p=add("path",{d,fill:"none",stroke:cssvar("--muted"),"stroke-width":1.4,"stroke-opacity":.42,
+      "stroke-linejoin":"round","stroke-linecap":"round"});
+    p.style.cursor="pointer";
+    p.addEventListener("mousemove",e=>{
+      p.setAttribute("stroke-opacity",1);p.setAttribute("stroke",cssvar("--ink2"));p.setAttribute("stroke-width",2.4);
+      const rows=QS.map((q,i)=>`${q}: <b>${fmt(s.vals[i],METRICS.find(m=>m.k===current).unit)}</b>`).join("<br>");
+      showTT(`<b>${s.tk}</b><br>${rows}`,e.clientX,e.clientY);
+    });
+    p.addEventListener("mouseleave",()=>{p.setAttribute("stroke-opacity",.42);p.setAttribute("stroke",cssvar("--muted"));p.setAttribute("stroke-width",1.4);hideTT();});
+  });
+  // average line (bold, series color)
+  const avg=[0,1,2,3].map(i=>S.reduce((a,s)=>a+s.t[i],0)/S.length);
+  const d=avg.map((t,i)=>`${i?"L":"M"}${x(i)},${y(t)}`).join("");
+  add("path",{d,fill:"none",stroke:cssvar("--series"),"stroke-width":3,"stroke-linejoin":"round","stroke-linecap":"round"});
+  avg.forEach((t,i)=>add("circle",{cx:x(i),cy:y(t),r:4.5,fill:cssvar("--series"),stroke:cssvar("--surface"),"stroke-width":2}));
+  const lc=document.getElementById("linechart");lc.innerHTML="";lc.appendChild(svg);
+}
+
+function renderHeat(){
+  const S=series(current), m=METRICS.find(x=>x.k===current);
+  const NS="http://www.w3.org/2000/svg";
+  const rowH=30, colW=Math.max(90,Math.min(150,((document.querySelector(".wrap").clientWidth||900)-160)/4));
+  const labW=78, W=labW+colW*4+8, H=24+rowH*TICKERS.length+6;
+  const svg=document.createElementNS(NS,"svg");svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.setAttribute("width",W);
+  const add=(t,a,txt)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;svg.appendChild(e);return e;};
+  QS.forEach((q,i)=>add("text",{x:labW+colW*i+colW/2,y:16,"text-anchor":"middle",fill:cssvar("--muted"),"font-size":12},q));
+  S.forEach((s,r)=>{
+    const yy=24+r*rowH;
+    add("text",{x:0,y:yy+rowH/2+4,fill:cssvar("--ink"),"font-size":12.5,"font-weight":600},s.tk);
+    s.t.forEach((t,i)=>{
+      const xx=labW+colW*i;
+      const rect=add("rect",{x:xx+2,y:yy+2,width:colW-4,height:rowH-4,rx:5,fill:divColor(t),
+        stroke:cssvar("--ring"),"stroke-width":1});
+      rect.style.cursor="pointer";
+      // pick readable text color
+      const strong=Math.abs(t)>0.55;
+      add("text",{x:xx+colW/2,y:yy+rowH/2+4,"text-anchor":"middle","class":"cell-txt",
+        fill:strong?"#fff":cssvar("--ink"),"font-size":11.5},fmt(s.vals[i],"").trim());
+      rect.addEventListener("mousemove",e=>{
+        const dev=s.vals[i]-s.mean;
+        showTT(`<b>${s.tk} · ${QS[i]}</b><br>${m.label}: <b>${fmt(s.vals[i],m.unit)}</b><br>`+
+          `เฉลี่ยทั้งปี: ${fmt(s.mean,m.unit)}<br>ต่างจากเฉลี่ย: <b>${dev>0?"+":""}${fmt(dev,m.unit)}</b>`,e.clientX,e.clientY);
+      });
+      rect.addEventListener("mouseleave",hideTT);
+    });
+  });
+  const h=document.getElementById("heatmap");h.innerHTML="";h.appendChild(svg);
+}
+
+function renderTable(){
+  const m=METRICS.find(x=>x.k===current);
+  let html=`<thead><tr><th>บริษัท</th>${QS.map(q=>`<th>${q}</th>`).join("")}<th>เฉลี่ย</th><th>พิสัย</th></tr></thead><tbody>`;
+  series(current).forEach(s=>{
+    const rng=Math.max(...s.vals)-Math.min(...s.vals);
+    html+=`<tr><td>${s.tk}</td>${s.vals.map(v=>`<td>${(Math.round(v*100)/100)}</td>`).join("")}`+
+      `<td>${Math.round(s.mean*100)/100}</td><td>${Math.round(rng*10)/10}</td></tr>`;
+  });
+  html+="</tbody>";
+  document.getElementById("tbl").innerHTML=html;
+  document.getElementById("tblhint").textContent=`หน่วย: ${m.unit.trim()||"%"} · "พิสัย" = ไตรมาสสูงสุด − ต่ำสุด (ยิ่งมาก = ฤดูกาลยิ่งแรง)`;
+}
+
+function renderAll(){renderChips();renderLine();renderHeat();renderTable();}
+renderAll();
+addEventListener("resize",()=>{renderLine();renderHeat();});
+new MutationObserver(renderAll).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+</script>
