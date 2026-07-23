@@ -1,0 +1,141 @@
+<title>ผังการทำงาน — TOUR Quarterly Finance Pipeline</title>
+<style>
+  :root{
+    --page:#edeee8; --card:#f6f7f4; --ink:#1b1d1a; --ink2:#54574f; --muted:#8a8c83;
+    --ring:rgba(20,22,16,.12); --accent:#2f6db0;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --page:#121310; --card:#1c1d19; --ink:#f2f2ec; --ink2:#b9bab0; --muted:#83857b;
+      --ring:rgba(255,255,255,.12); --accent:#6ea8e6;
+    }
+  }
+  :root[data-theme="dark"]{
+    --page:#121310; --card:#1c1d19; --ink:#f2f2ec; --ink2:#b9bab0; --muted:#83857b;
+    --ring:rgba(255,255,255,.12); --accent:#6ea8e6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:var(--sans);
+    padding:32px 20px;line-height:1.5}
+  .wrap{max-width:980px;margin:0 auto}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 6px}
+  h1{font-size:25px;letter-spacing:-.01em;margin:0 0 8px;text-wrap:balance}
+  .lede{color:var(--ink2);font-size:15px;margin:0 0 24px;max-width:64ch}
+  .lede code{font-family:var(--mono);font-size:.9em;background:var(--ring);padding:1px 5px;border-radius:4px}
+  .sheet{background:var(--card);border:1px solid var(--ring);border-radius:14px;
+    padding:20px 12px;overflow-x:auto;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .sheet .mermaid{min-width:640px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px 22px;margin:22px 2px 0;font-size:13px;color:var(--ink2)}
+  .legend .item{display:flex;align-items:center;gap:8px}
+  .sw{width:15px;height:15px;border-radius:4px;border:1.5px solid}
+  .foot{margin-top:22px;font-size:12.5px;color:var(--muted);line-height:1.6}
+  .foot b{color:var(--ink2);font-weight:600}
+  .foot code{font-family:var(--mono);font-size:.92em}
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">tour-finance · data pipeline</p>
+  <h1>ผังการทำงานทั้งหมด — สกัดงบการเงินรายไตรมาสหุ้นกลุ่ม TOUR</h1>
+  <p class="lede">จากไฟล์งบที่ตลาดหลักทรัพย์เผยแพร่ ไปจนถึงอัตราส่วน 7 ตัวและรายงานสูตรสด
+  แต่ละกล่องคือหนึ่งขั้นตอน ชื่อ <code>สคริปต์.py</code> กำกับเฟสที่รับผิดชอบ · เส้นทางหลักไหลจากบนลงล่าง
+  โดยมี <b>Balance check</b> เป็นด่านตัดสิน (ไม่ผ่าน = หยุดทันที)</p>
+
+  <div class="sheet">
+    <pre class="mermaid">
+%%{init: {'theme':'base','flowchart':{'htmlLabels':true,'nodeSpacing':38,'rankSpacing':46,'curve':'basis'},'themeVariables':{'fontFamily':'system-ui,sans-serif','fontSize':'13px','lineColor':'#9a9c92','background':'#f6f7f4','mainBkg':'#f6f7f4','clusterBkg':'#eef0ea','clusterBorder':'#cfd2c8','edgeLabelBackground':'#f6f7f4','tertiaryColor':'#eef0ea'}}}%%
+flowchart TD
+  A["<b>ไฟล์งบ SET</b><br/>.xls / .xlsx / .xlsm<br/>zip ซ้อนได้ · อัปโหลด"]
+
+  subgraph P2[" ② นำเข้า — ingest.py "]
+    direction TB
+    B["find_statements<br/>เดินหาไฟล์ใน zip ซ้อน"]
+    C["ตรวจ ticker + งวด<br/>ข้ามไฟล์อังกฤษ _e_"]
+    D["คัดลอกเข้าคลัง<br/>data/raw / TICKER / ปี"]
+    B --> C --> D
+  end
+
+  subgraph P3[" ③ สกัดข้อมูล — extract_set.py "]
+    direction TB
+    E["open_book<br/>ตรวจชนิดไฟล์ด้วย magic-byte"]
+    F["หาชีต PL · BS · CF<br/>จับจากเนื้อหา ไม่พึ่งชื่อชีต"]
+    G["ตรวจงวด·ปี·หน่วย<br/>เลือกคอลัมน์งบรวม งวดปัจจุบัน"]
+    H["จับคู่รายการผ่าน alias<br/>line_items.yml"]
+    E --> F --> G --> H
+  end
+
+  subgraph P4[" ④ คำนวณ "]
+    direction TB
+    J["de-cumulate<br/>Q4 = FY − Q1 − Q2 − Q3"]
+    K["เฉลี่ยงบดุลแบบ chain<br/>ปลายไตรมาสก่อน → ปลายไตรมาสนี้"]
+    L["7 ตัวชี้วัด<br/>NPM ROA ROE · DSO DIO DPO CCC"]
+    J --> K --> L
+  end
+
+  I{"Balance check<br/>สินทรัพย์ = หนี้สิน + ทุน ?"}
+  X["หยุด + แจ้ง error<br/>fail-loud"]
+  M[("metrics_all.csv<br/>ชุดข้อมูลหลัก")]
+
+  subgraph P5[" ⑤ ตรวจสอบ — validate.py "]
+    N["312 การตรวจ<br/>balance · flow · ช่วง GM · restatement"]
+  end
+
+  subgraph P6[" ⑥ ผลลัพธ์ "]
+    direction TB
+    O1["ตารางอัตราส่วน (Excel)<br/>report.py → ratios_report.xlsx<br/>build_combined_linked.py → TOUR_all_linked.xlsx"]
+    O2["การวิเคราะห์<br/>annual_avg_compare.py · 2จุด/5จุด<br/>seasonal_2568.html · กราฟฤดูกาล"]
+    O3["เอกสารระเบียบวิธี<br/>methodology.md · DL-1 DL-2 อ้างอิงสูตร"]
+  end
+
+  A --> B
+  D --> E
+  H --> I
+  I -->|ไม่ผ่าน| X
+  I -->|ผ่าน| J
+  L --> M --> N
+  N --> O1
+  N --> O2
+  N --> O3
+
+  classDef input fill:#e7e9ec,stroke:#6b7280,color:#1b1d1a;
+  classDef extract fill:#d2efe4,stroke:#17997a,color:#123;
+  classDef compute fill:#e4ddf7,stroke:#6b4fc7,color:#123;
+  classDef gate fill:#fbedcf,stroke:#c98a1a,color:#123;
+  classDef data fill:#dceafb,stroke:#2f6db0,color:#123;
+  classDef validate fill:#fbe6d8,stroke:#c9631a,color:#123;
+  classDef output fill:#d8efdb,stroke:#2e9e4f,color:#123;
+  classDef error fill:#f7dad7,stroke:#c0392b,color:#3a1512;
+
+  class A input;
+  class B,C,D data;
+  class E,F,G,H extract;
+  class I gate;
+  class J,K,L compute;
+  class M data;
+  class N validate;
+  class O1,O2,O3 output;
+  class X error;
+    </pre>
+  </div>
+
+  <div class="legend">
+    <span class="item"><span class="sw" style="background:#dceafb;border-color:#2f6db0"></span>นำเข้า / ข้อมูล</span>
+    <span class="item"><span class="sw" style="background:#d2efe4;border-color:#17997a"></span>สกัดข้อมูล</span>
+    <span class="item"><span class="sw" style="background:#e4ddf7;border-color:#6b4fc7"></span>คำนวณ</span>
+    <span class="item"><span class="sw" style="background:#fbedcf;border-color:#c98a1a"></span>ด่านตรวจ balance</span>
+    <span class="item"><span class="sw" style="background:#fbe6d8;border-color:#c9631a"></span>ตรวจสอบ 312 จุด</span>
+    <span class="item"><span class="sw" style="background:#d8efdb;border-color:#2e9e4f"></span>ผลลัพธ์</span>
+    <span class="item"><span class="sw" style="background:#f7dad7;border-color:#c0392b"></span>error (fail-loud)</span>
+  </div>
+
+  <p class="foot">
+    <b>หลักสำคัญ 3 อย่างที่ผังนี้บังคับ:</b>
+    (1) <b>fail-loud</b> — ถ้า balance ไม่ตรง หรือหา required item ไม่เจอ ระบบหยุดทันที ไม่ปล่อยเลขผิดผ่าน ·
+    (2) <b>de-cumulation</b> — งบไตรมาสไทยเป็นตัวเลข 3 เดือน แต่ Q4 ไม่มีแยก ต้องคำนวณ FY−Q1−Q2−Q3 ·
+    (3) <b>chained averaging</b> — งบไตรมาสเทียบ "ต้นปี" เสมอ จึงต้องต่อยอดปลายไตรมาสก่อนหน้าเป็นต้นงวด
+    เพื่อให้ค่าเฉลี่ยงบดุลถูกต้อง ·
+    ทุกอัตราส่วนยึดฐาน CFA (นิยามเดียว สม่ำเสมอทุกบริษัท) ตาม <code>methodology.md</code>
+  </p>
+</div>
