@@ -372,6 +372,11 @@ def find_value(sheet, col, spec, divisor, row_end=None):
         if not hit:
             continue
         v = sheet.cell_value(r, col)
+        # label ยาวตัดขึ้น 2 บรรทัด (SHR) — ค่าตกไปแถวถัดไปที่คอลัมน์แรกว่าง
+        if not (isinstance(v, (int, float)) and v != 0) and (r + 1) < limit:
+            nxt = sheet.cell_value(r + 1, col)
+            if isinstance(nxt, (int, float)) and nxt != 0 and not norm(sheet.cell_value(r + 1, 0)):
+                v = nxt
         if isinstance(v, (int, float)) and v != 0:
             found.append(v / divisor)
             if not do_sum and not reduce:
