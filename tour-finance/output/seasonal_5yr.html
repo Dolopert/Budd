@@ -99,7 +99,10 @@
     <div class="legend" id="hmLegend"></div>
   </div>
 
-  <p class="foot">ที่มา: งบการเงินที่ตลาดหลักทรัพย์เผยแพร่ (สอบทาน/ตรวจสอบ) · ฐาน CFA · งบดุลเฉลี่ยแบบ chain · Q4 = FY−Q1−Q2−Q3 (หรือ de-cumulate งบสะสม) · ROA/ROE/NPM/GM = % ต่อไตรมาส (ไม่ annualize) · DSO/DIO/DPO/CCC = วัน · ครบ 200/200 จุด, ตรวจ 1,497 รายการ 0 error</p>
+  <p class="foot"><b>อ่านค่าอัตรากำไร (NPM/GM) ช่วงโควิด 2564 ด้วยความระวัง:</b> เมื่อรายได้เกือบเป็นศูนย์
+  และกำไรถูกครอบด้วยรายการพิเศษ (เช่น MANRIN Q3/2564 มีกำไรขายทรัพย์สิน +50 ล้าน ขณะรายได้ 1.6 ล้าน → NPM ~625%)
+  อัตราส่วนต่อรายได้จะไม่สื่อความหมาย — ค่าจริงถูกต้อง แต่กราฟบีบช่วงเพื่ออ่านง่าย ค่าสุดโต่งดูได้ที่ tooltip<br>
+  ที่มา: งบการเงินที่ตลาดหลักทรัพย์เผยแพร่ (สอบทาน/ตรวจสอบ) · ฐาน CFA · งบดุลเฉลี่ยแบบ chain · Q4 = FY−Q1−Q2−Q3 (หรือ de-cumulate งบสะสม) · ROA/ROE/NPM/GM = % ต่อไตรมาส · DSO/DIO/DPO/CCC = วัน · ครบ 200/200 จุด, ตรวจ 1,497 รายการ 0 error</p>
 </div>
 
 <div class="tt" id="tt"></div>
@@ -134,19 +137,29 @@ function mix(a,b,t){return `rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(",
 function vals(firm,metric){return QUARTERS.map(q=>{const d=DATA[firm][q];return d?d[metric]:null;});}
 function fmt(v,u){return v==null?"—":(Math.round(v*100)/100).toLocaleString(undefined,{maximumFractionDigits:2})+u;}
 
+// robust domain (เปอร์เซ็นไทล์) — กันค่าสุดโต่งจริง (เช่น NPM ช่วงรายได้เกือบศูนย์) บีบให้กราฟอ่านได้
+function pct(sorted,p){if(!sorted.length)return 0;const i=(sorted.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);
+  return sorted[lo]+(sorted[hi]-sorted[lo])*(i-lo);}
+function robustDomain(metric){
+  const a=[];FIRMS.forEach(f=>vals(f,metric).forEach(v=>{if(v!=null)a.push(v);}));
+  a.sort((x,y)=>x-y);
+  return {lo:pct(a,0.03),hi:pct(a,0.97),min:a[0],max:a[a.length-1],
+          clipped:a.some(v=>v<pct(a,0.03)||v>pct(a,0.97))};
+}
+function clamp(v,lo,hi){return v<lo?lo:v>hi?hi:v;}
+
 // color scale for heatmap given metric
 function makeScale(metric){
   const m=METRICS.find(x=>x.k===metric);
-  let all=[];FIRMS.forEach(f=>vals(f,metric).forEach(v=>{if(v!=null)all.push(v);}));
-  const lo=Math.min(...all),hi=Math.max(...all);
+  const {lo,hi}=robustDomain(metric);       // บีบด้วยเปอร์เซ็นไทล์ 3–97
   if(m.signed){
     const mx=Math.max(Math.abs(lo),Math.abs(hi))||1;
     const neg=hx(cvar("--neg")),mid=hx(cvar("--mid")),pos=hx(cvar("--pos"));
-    return v=>{if(v==null)return "transparent";const t=Math.max(-1,Math.min(1,v/mx));
+    return v=>{if(v==null)return "transparent";const t=clamp(v/mx,-1,1);
       return t<0?mix(mid,neg,-t):mix(mid,pos,t);};
   }
   const s0=hx(cvar("--seq0")),s1=hx(cvar("--seq1"));
-  return v=>{if(v==null)return "transparent";const t=(v-lo)/((hi-lo)||1);return mix(s0,s1,t);};
+  return v=>{if(v==null)return "transparent";const t=clamp((v-lo)/((hi-lo)||1),0,1);return mix(s0,s1,t);};
 }
 
 function renderChips(){
@@ -167,11 +180,11 @@ function renderTrend(){
   const m=METRICS.find(x=>x.k===curMetric);
   const W=Math.min(1060,(document.querySelector(".wrap").clientWidth||960)-44),H=340;
   const mL=48,mR=14,mT=16,mB=40,iw=W-mL-mR,ih=H-mT-mB;
-  let all=[];FIRMS.forEach(f=>vals(f,curMetric).forEach(v=>{if(v!=null)all.push(v);}));
-  let lo=Math.min(...all),hi=Math.max(...all);const pad=(hi-lo)*.06||1;lo-=pad;hi+=pad;
+  const rd=robustDomain(curMetric);
+  let lo=rd.lo,hi=rd.hi;const pad=(hi-lo)*.06||1;lo-=pad;hi+=pad;
   if(m.signed){if(lo>0)lo=0;if(hi<0)hi=0;}
   const x=i=>mL+iw*(i/(QUARTERS.length-1));
-  const y=v=>mT+ih*(1-(v-lo)/((hi-lo)||1));
+  const y=v=>mT+ih*(1-(clamp(v,lo,hi)-lo)/((hi-lo)||1));   // clip ค่าสุดโต่งให้ติดขอบ (tooltip ยังโชว์ค่าจริง)
   const NS="http://www.w3.org/2000/svg";
   const svg=document.createElementNS(NS,"svg");svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.setAttribute("role","img");
   const add=(t,a,txt)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;svg.appendChild(e);return e;};
@@ -213,7 +226,8 @@ function renderTrend(){
     hit.addEventListener("mousemove",show);hit.addEventListener("mouseleave",hideTT);});
   const el=document.getElementById("trend");el.innerHTML="";el.appendChild(svg);
   document.getElementById("trendTitle").textContent=`${m.label} — ${curFirm==="__ALL__"?"ทั้ง 10 บริษัท + มัธยฐานกลุ่ม":curFirm+" (เจาะ) เทียบพื้นหลังทั้งกลุ่ม"}`;
-  document.getElementById("trendSub").textContent=`เส้นทึบ = ${curFirm==="__ALL__"?"มัธยฐานกลุ่ม":curFirm} · เส้นจาง = บริษัทอื่น · หน่วย ${m.unit.trim()||"%"}`;
+  const clipNote=rd.clipped?` · แกนบีบช่วง 3–97 เปอร์เซ็นไทล์ (ค่าสุดโต่งจริงติดขอบ — ดูค่าเต็มที่ tooltip)`:"";
+  document.getElementById("trendSub").textContent=`เส้นทึบ = ${curFirm==="__ALL__"?"มัธยฐานกลุ่ม":curFirm} · เส้นจาง = บริษัทอื่น · หน่วย ${m.unit.trim()||"%"}${clipNote}`;
 }
 
 function renderHeat(){
