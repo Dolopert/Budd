@@ -353,6 +353,7 @@ def find_value(sheet, col, spec, divisor, row_end=None):
     """
     match_mode = spec.get("match", "prefix")
     aliases = [nospace(a) for a in spec["aliases"]]
+    excludes = [nospace(e) for e in spec.get("exclude", [])]   # ข้ามบรรทัดที่มีคำเหล่านี้
     do_sum = spec.get("sum", False)
     reduce = spec.get("reduce")                    # 'max' = เอาค่ามากสุด (ไม่ใช่บรรทัดแรก)
     limit = row_end if row_end is not None else sheet.nrows
@@ -360,6 +361,8 @@ def find_value(sheet, col, spec, divisor, row_end=None):
     for r in range(limit):
         label = nospace(row_label(sheet, r, col))
         if not label:
+            continue
+        if any(e in label for e in excludes):      # เช่น 'ไม่หมุนเวียน' = ลูกหนี้/เจ้าหนี้ระยะยาว
             continue
         hit = False
         for an in aliases:
