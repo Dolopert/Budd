@@ -336,13 +336,19 @@ def pl_first_statement_end(pl_sheet, label_upto):
                 if nospace(row_label(pl_sheet, r, label_upto)) in ("รวมรายได้", "รายได้รวม")]
     if len(rev_rows) >= 2:
         return rev_rows[1]
-    # ไม่มี 'รวมรายได้' 2 ชุด -> หาหัวข้อ 'งบกำไรขาดทุน' ครั้งที่ 2 (จุดเริ่มงบชุดถัดไป)
-    # ไม่นับ '(ต่อ)' ซึ่งเป็นส่วนต่อของงบชุดเดียวกัน (OCI)
+    # ไม่มี 'รวมรายได้' 2 ชุด -> หาหัวข้อ 'งบกำไรขาดทุน' ที่เป็น "งบชุดใหม่จริง"
+    # งบชุดใหม่ = title ตามด้วยบรรทัดรายได้ภายใน ~15 แถว (ต่างจากส่วน OCI ที่ไม่มีรายได้ - ASIA/ERW)
+    def revenue_after(t, window=15):
+        for rr in range(t + 1, min(t + 1 + window, pl_sheet.nrows)):
+            if nospace(row_label(pl_sheet, rr, label_upto)).startswith(("รายได้", "รวมรายได้")):
+                return True
+        return False
     title_rows = []
     for r in range(pl_sheet.nrows):
         blob = " ".join(norm(pl_sheet.cell_value(r, c)) for c in range(min(pl_sheet.ncols, 4)))
-        if "งบกำไรขาดทุน" in blob and "ต่อ" not in blob:
+        if "งบกำไรขาดทุน" in blob and "ต่อ" not in blob and revenue_after(r):
             title_rows.append(r)
+    # title[0] = งบชุดแรก, title[1] = จุดเริ่มงบสะสมชุดที่ 2 (ถ้ามี); ถ้าไม่มี = ทั้งชีต
     return title_rows[1] if len(title_rows) >= 2 else pl_sheet.nrows
 
 
@@ -450,6 +456,11 @@ def extract_file(path):
     if cogs is None:
         missing.append("PL:cogs (ทั้ง subtotal และ components)")
     out["cogs"] = abs(cogs) if cogs is not None else None
+
+    # กำไรส่วนแม่: ถ้างบไม่แบ่งปัน (ไม่มีทั้งส่วนแม่และส่วนน้อย) = ไม่มี NCI
+    # -> ตามหลักบัญชี กำไรทั้งหมดเป็นของบริษัทใหญ่ (parent = total) [MANRIN, SHR 2567-68]
+    if out.get("net_profit_parent") is None and out.get("net_profit_minority") is None:
+        out["net_profit_parent"] = out.get("net_profit_total")
 
     # balance sheet: ค้นข้ามทุกชีตงบดุล (รองรับงบดุลแยกชีต) เก็บยอดปลายงวด+ต้นงวด
     for name, spec in cfg["balance_sheet"].items():
