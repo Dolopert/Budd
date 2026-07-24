@@ -92,15 +92,18 @@ def build_is_flow(wb, alldata):
         for y in YEARS:
             recs = data.get(y, {})
             qflow = {rec["quarter"]: rec for rec, _ in E.compute_group(recs)}
-            peryear[y] = (qflow, recs.get("FY"),
-                          (recs.get("FY") is not None) and not E._cumulative_year(recs))
+            peryear[y] = (qflow, recs.get("FY"), E._cumulative_year(recs))
         for k, (label, key) in enumerate(zip(IS_ROWS, IS_KEYS)):
             r = is_row(i, k)
             ws.cell(r, 1, label).font = BOLD
             for yi, y in enumerate(YEARS):
                 base = 2 + yi * 5
                 cq1, cq2, cq3, cq4, cfy = base, base + 1, base + 2, base + 3, base + 4
-                qflow, fy_rec, std_q4 = peryear[y]
+                qflow, fy_rec, cumulative = peryear[y]
+                # anchor ต่อ "รายการ": ผูก Q4=FY−Q1−Q2−Q3 ได้ก็ต่อเมื่อ FY ของรายการนี้เป็นตัวเลขจริง
+                # (กัน circular กับ FY=ผลรวม เมื่อบางรายการเช่นกำไรส่วนแม่ไม่เปิดเผยบางปี)
+                fy_val_ok = fy_rec is not None and isinstance(fy_rec.get(key), (int, float))
+                std_q4 = fy_val_ok and not cumulative
                 for qi, col in enumerate((cq1, cq2, cq3)):
                     rec = qflow.get(("Q1", "Q2", "Q3")[qi])
                     v = rec.get(key) if rec else None
@@ -117,9 +120,9 @@ def build_is_flow(wb, alldata):
                     ws.cell(r, cq4).value = round(v4, 3) if isinstance(v4, (int, float)) else None
                     if v4 is None:
                         ws.cell(r, cq4).fill = INPUT_FILL
-                if fy_rec is not None and isinstance(fy_rec.get(key), (int, float)):
+                if fy_val_ok:
                     ws.cell(r, cfy).value = round(fy_rec[key], 3)
-                else:
+                else:                       # FY = ผลรวม 4 ไตรมาส (Q4 เป็นค่า ไม่ใช่สูตร -> ไม่วน)
                     ws.cell(r, cfy).value = (f"={GL(cq1)}{r}+{GL(cq2)}{r}"
                                              f"+{GL(cq3)}{r}+{GL(cq4)}{r}")
                     ws.cell(r, cfy).fill = DERIVED_FILL
