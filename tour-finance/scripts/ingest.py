@@ -39,7 +39,11 @@ def is_english_copy(path):
 
 CSV_COLS = ["ticker", "year", "quarter", "is_annual", "revenue", "cogs", "net_profit",
             "ar_end", "inv_end", "ap_end", "total_assets_end", "total_equity_end",
-            "NPM", "ROA", "ROE", "DSO", "DIO", "DPO", "CCC", "balance_ok", "source"]
+            "NPM", "ROA", "ROE", "DSO", "DIO", "DPO", "CCC", "rev_low", "balance_ok", "source"]
+
+# ไตรมาสที่รายได้ต่ำกว่า 40% ของมัธยฐานบริษัทตนเอง -> อัตราส่วนเชิงรายได้ (NPM/DSO/CCC)
+# ไม่น่าเชื่อ (ตัวหารเล็ก + มักมีรายการพิเศษ เช่น ขายสินทรัพย์) — ธงเตือน ไม่ตัดข้อมูล
+REV_LOW_FRAC = 0.40
 
 
 def find_statements(paths):
@@ -113,11 +117,26 @@ def rebuild():
                 "total_assets_end": rec["total_assets_end"],
                 "total_equity_end": rec["total_equity_end"],
                 **{k: m[k] for k in ("NPM", "ROA", "ROE", "DSO", "DIO", "DPO", "CCC")},
-                "balance_ok": rec.get("balance_ok", ""), "source": rec.get("file", ""),
+                "rev_low": "", "balance_ok": rec.get("balance_ok", ""),
+                "source": rec.get("file", ""),
             })
             got.append(rec["quarter"])
         has_fy = "FY" in by_tag
         summary.append((tk, yr, got, has_fy))
+
+    # ธงรายได้ต่ำผิดปกติ ต่อบริษัท (เทียบมัธยฐานรายได้ 20 ไตรมาสของตัวเอง)
+    import statistics
+    by_ticker = {}
+    for row in rows:
+        by_ticker.setdefault(row["ticker"], []).append(row)
+    for tk, trows in by_ticker.items():
+        revs = [r["revenue"] for r in trows if isinstance(r["revenue"], (int, float))]
+        if not revs:
+            continue
+        thresh = REV_LOW_FRAC * statistics.median(revs)
+        for r in trows:
+            if isinstance(r["revenue"], (int, float)) and r["revenue"] < thresh:
+                r["rev_low"] = "Y"     # อัตราส่วนเชิงรายได้ (NPM/DSO/CCC) ตีความด้วยความระวัง
 
     os.makedirs(OUT, exist_ok=True)
     with open(CSV_PATH, "w", newline="", encoding="utf-8-sig") as f:
