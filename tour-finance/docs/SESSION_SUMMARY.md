@@ -25,7 +25,16 @@
 | 2 | OHTL 2564 | ชีตตั้งชื่อเป็น **เลขหน้า** ('8-9') | จับ PL จากหัวข้อ "งบกำไรขาดทุน" ในเนื้อหา |
 | 3 | SHR 2565–66 | **label ยาวตัด 2 บรรทัด** ค่าอยู่บรรทัดต่อ | find_value อ่านค่าบรรทัดถัดไปถ้าคอลัมน์แรกว่าง |
 | 4 | ทุกบริษัท (กำไรส่วนแม่) | **circular #REF!** Q4↔FY อ้างวนกัน | เลือกสูตร Q4/FY ต่อรายการ (fy_val_ok) |
-| 5 | ASIA (+ MINT) | ASIA แยกบรรทัดเจ้าหนี้ → DPO ต่ำผิดกลุ่ม | `sum:true` + `exclude:["ไม่หมุนเวียน"]` |
+| 5 | ASIA (+ MINT) | ASIA แยกบรรทัดเจ้าหนี้ → DPO ต่ำผิดกลุ่ม | `sum:true` + `exclude:["ไม่หมุนเวียน"]` (DL-5) |
+| 6 | ASIA/ERW/VRANDA Q1+FY | กำไรส่วนแม่ว่าง — boundary ตัดก่อนถึงบรรทัด (OCI title) | title เป็นงบใหม่ต่อเมื่อตามด้วยรายได้ + ถ้าไม่มี NCI ตั้ง parent=total (DL-6) |
+
+### การวิเคราะห์สถิติ (panel regression) — ทำแล้ว
+- `scripts/analysis_run.py` (as-is) + `analysis_run_fixed.py` (RE + ตัดโควิด + quarterly dummy + clustered SE)
+- ผล (`output/analysis_results*.txt`): **DIV (ต่างประเทศ MINT/SHR/DUSIT vs ในไทย) ไม่มีนัยสำคัญ**
+  ต่อ CCC/ROA/ROE เมื่อคุมขนาด/หนี้/ฤดูกาล · ตัวขับจริง = **LEV (หนี้)** และ **ฤดูกาล (Q2/Q3 ต่ำ)**
+- 3 ปัญหาที่ยืนยันจากการรัน: FE ลบ DIV (time-invariant)→ต้องใช้ RE · ค่าโควิดทำ Breusch-Pagan fail
+  (ตัดแล้วผ่าน 0.048→0.583) · autocorrelation (DW=1.16) จากฤดูกาล
+- ยังไม่ได้ดึง: **DIV แบบต่อเนื่อง (% รายได้ต่างประเทศจริง)** จากหมายเหตุ segment
 
 ### ธง/หมายเหตุข้อมูลที่ต้องรู้
 - **`rev_low`='Y'** ใน metrics_all.csv = 20 จุด (โควิด 2564–ต้น2565) รายได้ต่ำ → NPM/DSO/CCC ไม่น่าเชื่อ
@@ -34,13 +43,18 @@
 
 ### Deliverables ปัจจุบัน (`output/`)
 `TOUR_all_linked.xlsx` (ไฟล์รวมสูตรสด 200 จุด) · `metrics_all.xlsx/.csv` (ดิบ + ธง rev_low) ·
-`ratios_report.xlsx` · `seasonal_5yr.html` (กราฟเทรนด์+ฤดูกาล 5 ปี) · `workflow.html` (ผังงาน)
+`raw_extract.xlsx` (ดิบต่อไฟล์ ก่อนรวม) · `ratios_report.xlsx` · `seasonal_5yr.html` (กราฟ 5 ปี) ·
+`workflow.html` (ผังงาน) · `analysis_results.txt` + `_fixed.txt` (ผลสถิติ)
+
+### สคริปต์หลัก (`scripts/`)
+`extract_set.py` (สกัด core) · `ingest.py` (นำเข้า+rebuild) · `validate.py` · `dump_raw.py` ·
+`build_combined_linked.py`/`build_quarterly_linked.py` (Excel สูตรสด) · `report.py` ·
+`annual_avg_compare.py` (2จุด/5จุด) · `analysis_run.py`/`analysis_run_fixed.py` (regression)
 
 ### สิ่งที่ยังทำต่อได้ (ยังไม่ทำ)
-- ขยาย `Summary_FY`/report ให้เทียบรายปี 5 ปี (ตอนนี้เน้น FY2568)
+- DIV แบบต่อเนื่อง (% รายได้ต่างประเทศจริง) จากหมายเหตุ segment แทน dummy
 - ตารางสรุป **รายการพิเศษ** (ขายสินทรัพย์/ด้อยค่า/เพิ่มทุน) ที่ทำให้กำไรบางไตรมาสเด้ง
-- โหมดค่าเฉลี่ยงบดุล **5 จุด** (มีใน`annual_avg_compare.py` — เปิดใช้เมื่อต้องการ)
-- บทวิเคราะห์ผล (เทรนด์ฟื้นตัวหลังโควิด + ฤดูกาล เชิงสถิติ)
+- เขียนบท "ผลการวิจัย" จาก analysis_results_fixed.txt · ขยาย report เทียบรายปี 5 ปี
 
 ## 3. แหล่งข้อมูล (Sources)
 
