@@ -1,0 +1,35 @@
+source,ticker,year,metric,value,note
+# แหล่งภายนอกสำหรับเปรียบเทียบ — เพิ่มแถวเมื่อได้ตัวเลขจาก settrade / 56-1 / MD&A
+# source: settrade | mda | 56-1 | annual
+# metric: DSO DIO DPO CCC NPM ROA ROE DE (หน่วย: วัน หรือ อัตราส่วน เช่น 0.028 = 2.8%)
+settrade,MINT,2566,DSO,45.18,ผู้ใช้ส่งจาก settrade
+settrade,MINT,2566,DIO,24.88,
+settrade,MINT,2566,DPO,174.08,
+settrade,MINT,2566,CCC,-104.02,
+settrade,MINT,2567,DSO,31.60,
+settrade,MINT,2567,DIO,24.16,
+settrade,MINT,2567,DPO,153.98,
+settrade,MINT,2567,CCC,-98.22,
+settrade,MINT,2568,DSO,36.16,
+settrade,MINT,2568,DIO,27.15,
+settrade,MINT,2568,DPO,162.67,
+settrade,MINT,2568,CCC,-99.36,
+mda,MINT,2568,DSO,24,จาก MD&A/56-1 MINT
+mda,MINT,2568,DIO,20,
+mda,MINT,2568,DPO,67,
+mda,MINT,2568,ROA,0.028,
+mda,MINT,2568,ROE,0.099,
+# ยืนยันจาก MD&A 2568 (สะสม): Q1 DSO26/DIO22/DPO68 | 6M 25/21/68 | 9M 27/20/66
+# MINT คำนวณ DPO ด้วยฐาน (ต้นทุน+SG&A) -> ~67 วัน ต่างจาก settrade (163) และเรา CFA (106)
+# CENTEL MD&A Q3/2568: รายงานเฉพาะ Current Ratio=0.5, IBD/E=1.5, IBD(excl lease)/E=0.8
+# CENTEL ไม่เปิดเผย DSO/DIO/DPO/ROA/ROE -> ยืนยันว่าตัวเลขบริษัทเทียบข้ามกันไม่ได้ (ต้องคำนวณเอง)
+mda,CENTEL,2568,current_ratio,0.5,Q3 - CENTEL ไม่รายงาน cash cycle
+mda,CENTEL,2568,IBD_E,1.5,หนี้มีดอกเบี้ย/ทุน (นิยามต่างจาก D/E ของเรา)
+mda,DUSIT,2568,NPM,-0.051,FY MD&A - net profit margin
+mda,DUSIT,2568,ROE,-0.065,attributable to owners
+mda,DUSIT,2568,ROA,0.010,
+mda,DUSIT,2568,DSO,21,average collection FY
+mda,DUSIT,2568,GM,0.315,gross profit margin
+mda,DUSIT,2568,DE,4.68,debt to equity (parent)
+# DUSIT รายงาน DSO=21 vs เรา 53.7 (นิยามลูกหนี้/รายได้ต่าง); NPM ตรง (-5.1 vs -5.3)
+# DUSIT ไม่รายงาน DIO/DPO
