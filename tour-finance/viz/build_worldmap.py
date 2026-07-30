@@ -309,9 +309,12 @@ __LAND__
         const A=px(cm.lat,cm.lon),B=px(f.lat,f.lon);
         if(Math.hypot(A[0]-B[0],A[1]-B[1])<6)return;              // ประเทศทับศูนย์ทวีป -> ไม่ต้องแตกเส้น
         const lit=!hot||hot===f.co||hot===cm.nm||hot===f.country,col=COL[f.co];
-        ctx.save();ctx.globalAlpha=lit?0.5:0.05;ctx.strokeStyle=col;ctx.lineWidth=1;ctx.setLineDash([3,3]);
-        ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();ctx.restore();
-        ctx.save();ctx.globalAlpha=lit?0.95:0.12;ctx.fillStyle="#c3d0e8";ctx.shadowColor=col;ctx.shadowBlur=lit?5:0;ctx.beginPath();ctx.arc(B[0],B[1],2.6,0,7);ctx.fill();ctx.restore();
+        // เส้นโค้งประ กางตามบริษัท (แต่ละบริษัทโค้งคนละทาง -> แยกออกว่ามาจากใคร)
+        const mx=(A[0]+B[0])/2,my=(A[1]+B[1])/2,dx=B[0]-A[0],dy=B[1]-A[1],len=Math.hypot(dx,dy)||1;
+        const off=(CIDX[f.co]-2)*13+7,cx=mx-dy/len*off,cy=my+dx/len*off;
+        ctx.save();ctx.globalAlpha=lit?0.55:0.05;ctx.strokeStyle=col;ctx.lineWidth=lit&&hot?1.6:1.1;ctx.setLineDash([4,3]);ctx.lineCap="round";
+        ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.quadraticCurveTo(cx,cy,B[0],B[1]);ctx.stroke();ctx.restore();
+        ctx.save();ctx.globalAlpha=lit?0.95:0.12;ctx.fillStyle=lit?col:"#c3d0e8";ctx.shadowColor=col;ctx.shadowBlur=lit?6:0;ctx.beginPath();ctx.arc(B[0],B[1],2.8,0,7);ctx.fill();ctx.restore();
         if(lit)txt(f.country,B[0],B[1]+12,"#9aa4b8","600 9px "+getFont(),2.4);});
     }
     COUNTRIES.forEach(c=>{if(!c.flows.some(vis))return;const P=px(c.lat,c.lon);const r=dotR(c);const lit=litC(c);const on=hot===c.country;
