@@ -167,7 +167,7 @@ __LAND__
   const FLOWS=CFG.FLOWS;
   const TH=[15,100];
   // --- ความละเอียด: ประเทศ (ดิบ) หรือ ทวีป (รวม) ---
-  const CONT_META={Europe:{lat:50,lon:10,nm:"ยุโรป"},Asia:{lat:22,lon:100,nm:"เอเชีย"},
+  const CONT_META={Europe:{lat:50,lon:10,nm:"ยุโรป"},Asia:{lat:34,lon:113,nm:"เอเชีย"},
     Oceania:{lat:-27,lon:141,nm:"โอเชียเนีย"},Americas:{lat:-12,lon:-60,nm:"อเมริกา"},
     Africa:{lat:-6,lon:22,nm:"แอฟริกา"},"Middle East":{lat:24,lon:47,nm:"ตะวันออกกลาง"},Other:{lat:8,lon:78,nm:"อื่น ๆ"}};
   function contFlows(){                      // รวมทุกประเทศใน cont เดียวกันของบริษัทเดียวกัน -> 1 จุด/ทวีป
@@ -302,6 +302,17 @@ __LAND__
       if(!reduce&&lit){const sp=0.09+Math.min(0.15,v/130000);const np=hot&&lit?4:2;
         for(let k=0;k<np;k++){let tt=((t*sp)+k/np+i*0.11)%1;const s=1-tt,u=1-s;const x=u*u*HUB[0]+2*u*s*cx+s*s*P[0],y=u*u*HUB[1]+2*u*s*cy+s*s*P[1];
           ctx.save();ctx.globalAlpha=Math.sin(s*Math.PI)*.9;ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=7;ctx.beginPath();ctx.arc(x,y,1.7,0,7);ctx.fill();ctx.restore();}}});
+    // โหมดทวีป: แตกเส้นย่อยจากศูนย์ทวีป -> ประเทศจริง (ลำดับชั้น ไทย->ทวีป->ประเทศ)
+    if(geo==="cont"){
+      FLOWS.filter(vis).forEach(f=>{const cm=CONT_META[f.cont];if(!cm)return;
+        const A=px(cm.lat,cm.lon),B=px(f.lat,f.lon);
+        if(Math.hypot(A[0]-B[0],A[1]-B[1])<6)return;              // ประเทศทับศูนย์ทวีป -> ไม่ต้องแตกเส้น
+        const lit=!hot||hot===f.co||hot===cm.nm||hot===f.country,col=COL[f.co];
+        ctx.save();ctx.globalAlpha=lit?0.5:0.05;ctx.strokeStyle=col;ctx.lineWidth=1;ctx.setLineDash([3,3]);
+        ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();ctx.restore();
+        ctx.save();ctx.globalAlpha=lit?0.95:0.12;ctx.fillStyle="#c3d0e8";ctx.shadowColor=col;ctx.shadowBlur=lit?5:0;ctx.beginPath();ctx.arc(B[0],B[1],2.6,0,7);ctx.fill();ctx.restore();
+        if(lit)txt(f.country,B[0],B[1]+12,"#9aa4b8","600 9px "+getFont(),2.4);});
+    }
     COUNTRIES.forEach(c=>{if(!c.flows.some(vis))return;const P=px(c.lat,c.lon);const r=dotR(c);const lit=litC(c);const on=hot===c.country;
       ctx.save();ctx.globalAlpha=lit?1:.28;const cc=on?"#fbbf24":"#dbe6fb";ctx.shadowColor=cc;ctx.shadowBlur=on?12:4;ctx.fillStyle=cc;ctx.beginPath();ctx.arc(P[0],P[1],r,0,7);ctx.fill();ctx.restore();
       if(lit)txt(c.country,P[0],P[1]-r-4,on?"#ffe58a":"#c3d0e8","600 11px "+getFont(),3);});
