@@ -127,7 +127,7 @@ const LAND=[[180,-16.1,180,-16.6,179.4,-16.8,178.7,-17.0,178.6,-16.6,179.1,-16.4
   const fmt=v=>"฿"+(v>=1000?(v/1000).toFixed(v>=100000?0:1)+"B":Math.round(v)+"M");
   const PIN='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-6.5-5.7-6.5-10.5a6.5 6.5 0 0113 0C18.5 15.3 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.2"/></svg>';
 
-  let view="pct",sel="all",hot=null,yi=4,hleg=null;   // yi = ดัชนีปี · hleg = ขาประเทศที่เมาส์ชี้ (โหมดทวีป)
+  let view="pct",sel="all",hot=null,yi=4,hleg=null;   // yi = ดัชนีปี · hleg = ชื่อประเทศที่เมาส์ชี้ (โหมดทวีป) ไฮไลต์ทุกบริษัทที่ไปประเทศนั้น
 
   // ---- helpers อิงปีปัจจุบัน ----
   const fpOf=id=>DATA[id].fp[yi];            // % ต่างประเทศ ปีนี้
@@ -158,7 +158,8 @@ const LAND=[[180,-16.1,180,-16.6,179.4,-16.8,178.7,-17.0,178.6,-16.6,179.1,-16.4
       el.onmouseenter=()=>{hot=id;renderDetail();markHot();};
       el.onmouseleave=()=>{hot=null;renderDetail();markHot();};});
   }
-  function markHot(){barsEl.querySelectorAll(".barrow").forEach(el=>el.classList.toggle("hot",el.dataset.co===hot));}
+  function markHot(){const cos=hleg?new Set(FLOWS.filter(f=>f.country===hleg&&f.thb[yi]>0).map(f=>f.co)):null;
+    barsEl.querySelectorAll(".barrow").forEach(el=>el.classList.toggle("hot",cos?cos.has(el.dataset.co):el.dataset.co===hot));}
 
   // ---------- LEFT: detail ----------
   const detEl=document.getElementById("detail"),dlbl=document.getElementById("dlbl");
@@ -198,7 +199,18 @@ const LAND=[[180,-16.1,180,-16.6,179.4,-16.8,178.7,-17.0,178.6,-16.6,179.1,-16.4
       <div class="tile"><div class="k">บริษัท intl</div><div class="v">${nIntl}<span style="font-size:11px;color:var(--t3)"> / 10</span></div></div></div>
       <p style="font-size:11px;color:var(--t2);line-height:1.5;margin-top:8px">ปี ${YEARS[yi]}: บริษัทที่เข้าเกณฑ์ต่างประเทศ (≥20%) มี <b style="color:#ff8a4c">${nIntl}</b> บริษัท — MINT รายได้ยุโรปปีเดียว (${fmt(fThb(FLOWS[0]))}) ยังมากกว่ารายได้ในประเทศทั้ง 10 โรงแรมรวมกัน</p>`;
   }
-  function renderDetail(){if(hot&&DATA[hot])coDetail(hot);else if(hot)countryDetail(hot);else if(sel!=="all")coDetail(sel);else overview();}
+  function legDetail(country){    // hover จุดประเทศ (โหมดทวีป): ลิสต์ทุกบริษัทที่ไปประเทศนั้น + เส้นทางย้อนกลับ
+    const fl=FLOWS.filter(f=>f.country===country&&f.thb[yi]>0).sort((a,b)=>fThb(b)-fThb(a));
+    if(!fl.length)return overview();
+    const mx=Math.max(1,...fl.map(f=>view==="thb"?fThb(f):fPct(f))),cm=CONT_META[fl[0].cont];
+    dlbl.textContent="ปลายทาง (ย้อนกลับ)";
+    detEl.innerHTML=`<div class="dhead">${PIN.replace('currentColor','#fbbf24')}<span class="nm">${country}</span>${cm?'<span class="chip" style="background:#33363c;color:#c3d0e8">'+cm.nm+'</span>':''}</div>`+
+      `<p style="font-size:9.5px;color:var(--t3);margin:-4px 0 7px">ย้อนกลับ: ${country} → ${cm?cm.nm:''} → ไทย · ${fl.length} บริษัท</p>`+
+      fl.map(f=>`<div class="drow"><div class="rl"><i class="dot" style="background:${COL[f.co]}"></i><span>${f.co}</span></div>
+        <div class="rv">${view==="thb"?fmt(fThb(f)):"~"+fPct(f)+"%"}</div>
+        <div class="mt"><i style="width:${(view==="thb"?fThb(f):fPct(f))/mx*100}%;background:${COL[f.co]}"></i></div></div>`).join("");
+  }
+  function renderDetail(){if(hleg)return legDetail(hleg);if(hot&&DATA[hot])coDetail(hot);else if(hot)countryDetail(hot);else if(sel!=="all")coDetail(sel);else overview();}
 
   function renderLegend(){
     document.getElementById("legend").innerHTML='<div class="lg">บริษัท · % ต่างประเทศ '+YEARS[yi]+'</div>'+
@@ -223,8 +235,8 @@ const LAND=[[180,-16.1,180,-16.6,179.4,-16.8,178.7,-17.0,178.6,-16.6,179.1,-16.4
   const rad=(v,mx,mn,mr)=>mn+Math.sqrt(Math.max(0,v))/Math.sqrt(mx)*(mr-mn);
   function cThb(c){return c.flows.filter(vis).reduce((s,f)=>s+fThb(f),0);}
   function dotR(c){if(view==="thb")return rad(cThb(c),curMax(),4,22);if(sel!=="all"){const f=c.flows.find(x=>x.co===sel);return f?5+Math.sqrt(fPct(f))*2.3:4;}return 5+Math.sqrt(new Set(c.flows.map(f=>f.co)).size)*4.5;}
-  function litArc(f){if(hleg)return f.co===hleg.co&&f.cont===hleg.cont;if(!hot)return true;return DATA[hot]?f.co===hot:f.country===hot;}
-  function litC(c){if(hleg)return c.cont===hleg.cont;if(!hot)return true;if(DATA[hot])return c.flows.some(f=>f.co===hot&&vis(f));return c.country===hot;}
+  function litArc(f){if(hleg)return FLOWS.some(x=>x.country===hleg&&x.co===f.co&&x.cont===f.cont);if(!hot)return true;return DATA[hot]?f.co===hot:f.country===hot;}
+  function litC(c){if(hleg){const hf=FLOWS.find(x=>x.country===hleg);return !!hf&&c.cont===hf.cont;}if(!hot)return true;if(DATA[hot])return c.flows.some(f=>f.co===hot&&vis(f));return c.country===hot;}
 
   function txt(s,x,y,fill,font,size){ctx.font=font;ctx.textAlign="center";ctx.lineJoin="round";ctx.lineWidth=size;ctx.strokeStyle="rgba(6,10,18,.92)";ctx.strokeText(s,x,y);ctx.fillStyle=fill;ctx.fillText(s,x,y);}
 
@@ -239,7 +251,7 @@ const LAND=[[180,-16.1,180,-16.6,179.4,-16.8,178.7,-17.0,178.6,-16.6,179.1,-16.4
       const off=0.12*len+8+(CIDX[f.co]-2)*(contMode?26:17);const cx=mx-dy/len*off,cy=my+dx/len*off;
       ctx.save();ctx.globalAlpha=lit?(hot?0.95:(contMode?0.48:0.62)):0.05;ctx.lineWidth=w+(hot&&lit?0.7:0);ctx.strokeStyle=col;ctx.shadowColor=col;ctx.shadowBlur=lit?(contMode?2:9):0;ctx.lineCap="round";
       ctx.beginPath();ctx.moveTo(HUB[0],HUB[1]);ctx.quadraticCurveTo(cx,cy,P[0],P[1]);ctx.stroke();ctx.restore();
-      if(!reduce&&lit&&!(contMode&&!hot)){const sp=0.09+Math.min(0.15,v/130000);const np=hot&&lit?(contMode?2:4):2;
+      if(!reduce&&lit&&!(contMode&&!hot&&!hleg)){const sp=0.09+Math.min(0.15,v/130000);const np=(hot||hleg)&&lit?(contMode?2:4):2;
         for(let k=0;k<np;k++){let tt=((t*sp)+k/np+i*0.11)%1;const s=1-tt,u=1-s;const x=u*u*HUB[0]+2*u*s*cx+s*s*P[0],y=u*u*HUB[1]+2*u*s*cy+s*s*P[1];
           ctx.save();ctx.globalAlpha=Math.sin(s*Math.PI)*.9;ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=7;ctx.beginPath();ctx.arc(x,y,1.7,0,7);ctx.fill();ctx.restore();}}});
     // โหมดทวีป: แตกเส้นย่อยจากศูนย์ทวีป -> ประเทศจริง (ลำดับชั้น ไทย->ทวีป->ประเทศ)
@@ -247,7 +259,7 @@ const LAND=[[180,-16.1,180,-16.6,179.4,-16.8,178.7,-17.0,178.6,-16.6,179.1,-16.4
       FLOWS.filter(vis).forEach(f=>{const cm=CONT_META[f.cont];if(!cm)return;
         const A=px(cm.lat,cm.lon),B=px(f.lat,f.lon);
         if(Math.hypot(A[0]-B[0],A[1]-B[1])<6)return;              // ประเทศทับศูนย์ทวีป -> ไม่ต้องแตกเส้น
-        const on=hleg===f;                                        // ขานี้ถูกเมาส์ชี้อยู่
+        const on=hleg&&f.country===hleg;                          // ขาที่ไปประเทศที่ชี้ (ทุกบริษัท)
         const lit=hleg?on:(!hot||hot===f.co||hot===cm.nm||hot===f.country),col=COL[f.co];
         // เส้นโค้งประ กางตามบริษัท (แต่ละบริษัทโค้งคนละทาง -> แยกออกว่ามาจากใคร)
         const mx=(A[0]+B[0])/2,my=(A[1]+B[1])/2,dx=B[0]-A[0],dy=B[1]-A[1],len=Math.hypot(dx,dy)||1;
@@ -269,12 +281,12 @@ const LAND=[[180,-16.1,180,-16.6,179.4,-16.8,178.7,-17.0,178.6,-16.6,179.1,-16.4
   function getFont(){return '-apple-system,"Segoe UI",Roboto,Arial,sans-serif';}
 
   cv.addEventListener("pointermove",e=>{const r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;let f=null,nl=null;
-    if(geo==="cont"){                                            // โหมดทวีป: ตรวจจุดประเทศย่อยก่อน
+    if(geo==="cont"){                                            // โหมดทวีป: ตรวจจุดประเทศย่อยก่อน (เก็บชื่อประเทศ -> ไฮไลต์ทุกบริษัท)
       FLOWS.filter(vis).forEach(x=>{const cm=CONT_META[x.cont];if(!cm)return;const A=px(cm.lat,cm.lon),B=px(x.lat,x.lon);
-        if(Math.hypot(A[0]-B[0],A[1]-B[1])<6)return;if(Math.hypot(B[0]-mx,B[1]-my)<8){nl=x;f=x.co;}});
+        if(Math.hypot(A[0]-B[0],A[1]-B[1])<6)return;if(Math.hypot(B[0]-mx,B[1]-my)<8)nl=x.country;});
     }
     if(!nl)COUNTRIES.forEach(c=>{if(!c.flows.some(vis))return;const P=px(c.lat,c.lon);if(Math.hypot(P[0]-mx,P[1]-my)<dotR(c)+6)f=c.country;});
-    if(f!==hot||nl!==hleg){hot=f;hleg=nl;renderDetail();markHot();}cv.style.cursor=(f||nl)?"pointer":"default";});
+    if(f!==hot||nl!==hleg){hot=nl?null:f;hleg=nl;renderDetail();markHot();}cv.style.cursor=(f||nl)?"pointer":"default";});
   cv.addEventListener("pointerleave",()=>{hot=null;hleg=null;renderDetail();markHot();});
 
   function sync(){renderBars();renderDetail();markHot();renderLegend();}
