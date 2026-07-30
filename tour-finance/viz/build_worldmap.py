@@ -293,13 +293,14 @@ __LAND__
     const t=(now-t0)/1000;ctx.clearRect(0,0,W,H);if(lc)ctx.drawImage(lc,0,0,W,H);
     const HUB=px(TH[0],TH[1]);
     const totIntl=IDS.reduce((s,id)=>s+intlOf(id),0);
+    const contMode=geo==="cont",wsc=contMode?0.55:1;   // โหมดทวีป: เส้นบางลง กางแยกมากขึ้น กัน้ทับกัน
     curFlows.filter(vis).forEach((f,i)=>{const P=px(f.lat,f.lon);const lit=litArc(f);const col=COL[f.co];const v=fThb(f);
-      const w=view==="thb"?Math.max(.9,Math.sqrt(v)/10):Math.max(.9,fPct(f)/8);
+      const w=(view==="thb"?Math.min(15,Math.max(.9,Math.sqrt(v)/15)):Math.max(.9,Math.min(7,fPct(f)/10)))*wsc;
       const mx=(HUB[0]+P[0])/2,my=(HUB[1]+P[1])/2,dx=P[0]-HUB[0],dy=P[1]-HUB[1],len=Math.hypot(dx,dy)||1;
-      const off=0.12*len+8+(CIDX[f.co]-2)*17;const cx=mx-dy/len*off,cy=my+dx/len*off;
-      ctx.save();ctx.globalAlpha=lit?(hot?0.95:0.62):0.05;ctx.lineWidth=w+(hot&&lit?0.7:0);ctx.strokeStyle=col;ctx.shadowColor=col;ctx.shadowBlur=lit?9:0;ctx.lineCap="round";
+      const off=0.12*len+8+(CIDX[f.co]-2)*(contMode?26:17);const cx=mx-dy/len*off,cy=my+dx/len*off;
+      ctx.save();ctx.globalAlpha=lit?(hot?0.95:(contMode?0.48:0.62)):0.05;ctx.lineWidth=w+(hot&&lit?0.7:0);ctx.strokeStyle=col;ctx.shadowColor=col;ctx.shadowBlur=lit?(contMode?2:9):0;ctx.lineCap="round";
       ctx.beginPath();ctx.moveTo(HUB[0],HUB[1]);ctx.quadraticCurveTo(cx,cy,P[0],P[1]);ctx.stroke();ctx.restore();
-      if(!reduce&&lit){const sp=0.09+Math.min(0.15,v/130000);const np=hot&&lit?4:2;
+      if(!reduce&&lit&&!(contMode&&!hot)){const sp=0.09+Math.min(0.15,v/130000);const np=hot&&lit?(contMode?2:4):2;
         for(let k=0;k<np;k++){let tt=((t*sp)+k/np+i*0.11)%1;const s=1-tt,u=1-s;const x=u*u*HUB[0]+2*u*s*cx+s*s*P[0],y=u*u*HUB[1]+2*u*s*cy+s*s*P[1];
           ctx.save();ctx.globalAlpha=Math.sin(s*Math.PI)*.9;ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=7;ctx.beginPath();ctx.arc(x,y,1.7,0,7);ctx.fill();ctx.restore();}}});
     // โหมดทวีป: แตกเส้นย่อยจากศูนย์ทวีป -> ประเทศจริง (ลำดับชั้น ไทย->ทวีป->ประเทศ)
